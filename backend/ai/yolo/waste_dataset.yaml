@@ -1,0 +1,50 @@
+# YOLO Dataset Configuration for Floating Waste Detection
+# This file defines the dataset structure and class names for waste detection
+
+# Dataset paths (relative to this file or absolute)
+path: ../data/datasets/waste
+train: train/images
+val: val/images
+
+# Number of classes
+nc: 28
+
+# Class names (must match your annotation labels)
+names:
+  # Dry Waste (0-11)
+  0: plastic_bottle
+  1: plastic_bag
+  2: plastic_wrapper
+  3: plastic_cup
+  4: paper
+  5: cardboard
+  6: newspaper
+  7: metal_can
+  8: metal_scrap
+  9: glass_bottle
+  10: glass_jar
+  11: textile
+  12: cloth
+  
+  # Wet Waste (13-17)
+  13: food_waste
+  14: fruit
+  15: vegetable
+  16: organic_matter
+  17: leaf
+  18: plant_debris
+  
+  # Hazardous Waste (19-24)
+  19: battery
+  20: broken_glass
+  21: sharp_object
+  22: chemical_container
+  23: medical_waste
+  24: oil_slick
+  25: hazardous_liquid
+  
+  # Floating-specific (26-27)
+  26: floating_plastic
+  27: floating_wood
+  28: floating_debris
+

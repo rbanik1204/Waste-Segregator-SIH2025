@@ -3,43 +3,451 @@
 <html>
 <head>
   <meta charset="utf-8" />
-  <title>Waste Segregation Heatmap</title>
+  <title>PAVITRAX | Smart Waste-Segregation Boat</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
   <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css"/>
-  <style>html,body,#map{height:100%;margin:0;padding:0}</style>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+  <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+  <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+  <script src="https://unpkg.com/leaflet.heat/dist/leaflet-heat.js"></script>
+  <style>
+    :root {
+      --primary: #0b4f6c;
+      --secondary: #1f8a70;
+      --bg: #f4f6f8;
+      --card: #ffffff;
+      --text: #0f172a;
+      --muted: #6b7280;
+      --accent: #f59e0b;
+      --danger: #dc2626;
+      --success: #16a34a;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: "Inter", Arial, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+    }
+    header {
+      background: linear-gradient(135deg, var(--primary), #07354b);
+      color: #fff;
+      padding: 20px 32px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 12px;
+    }
+    header h1 { margin: 0; font-size: 20px; letter-spacing: 0.5px; }
+    header .meta { font-size: 12px; color: #dbeafe; }
+    nav {
+      background: #fff;
+      display: flex;
+      gap: 12px;
+      padding: 10px 20px;
+      border-bottom: 1px solid #e5e7eb;
+      position: sticky;
+      top: 0;
+      z-index: 10;
+    }
+    nav button {
+      border: 1px solid #e5e7eb;
+      background: #f8fafc;
+      border-radius: 8px;
+      padding: 10px 14px;
+      font-weight: 600;
+      color: var(--text);
+      cursor: pointer;
+      transition: all .15s ease;
+    }
+    nav button.active { background: var(--primary); color: #fff; border-color: var(--primary); }
+    nav button:hover { transform: translateY(-1px); }
+    main { padding: 20px; }
+    section { display: none; }
+    section.active { display: block; }
+    .grid { display: grid; gap: 16px; }
+    .cards-4 { grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); }
+    .card {
+      background: var(--card);
+      border: 1px solid #e5e7eb;
+      border-radius: 12px;
+      padding: 16px;
+      box-shadow: 0 6px 18px rgba(0,0,0,0.04);
+    }
+    .card h3 { margin: 0 0 6px; font-size: 14px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.8px; }
+    .card .value { font-size: 24px; font-weight: 700; }
+    .pill { padding: 4px 10px; border-radius: 999px; font-size: 12px; display: inline-block; }
+    .pill.success { background: #ecfdf3; color: var(--success); }
+    .pill.warn { background: #fff7ed; color: var(--accent); }
+    .pill.danger { background: #fef2f2; color: var(--danger); }
+    .controls button {
+      border: none;
+      background: var(--primary);
+      color: #fff;
+      border-radius: 10px;
+      padding: 12px;
+      cursor: pointer;
+      font-weight: 600;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+      transition: background .1s ease, transform .1s ease;
+    }
+    .controls button.alt { background: var(--secondary); }
+    .controls button.danger { background: var(--danger); }
+    .controls button:hover { transform: translateY(-1px); }
+    #map, #heatmap { width: 100%; height: 360px; border-radius: 12px; }
+    table { width: 100%; border-collapse: collapse; }
+    th, td { padding: 10px; border-bottom: 1px solid #e5e7eb; text-align: left; font-size: 14px; }
+    th { background: #f8fafc; color: var(--muted); font-weight: 700; }
+    .badge { padding: 4px 8px; border-radius: 8px; font-size: 12px; }
+    .alert { border-left: 4px solid var(--accent); padding: 10px; margin-bottom: 8px; background: #fffbeb; border-radius: 8px; }
+    .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+    @media (max-width: 900px) {
+      nav { flex-wrap: wrap; }
+      .two-col { grid-template-columns: 1fr; }
+    }
+  </style>
 </head>
 <body>
-<div id="map"></div>
-<script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
-<script src="https://unpkg.com/leaflet.heat/dist/leaflet-heat.js"></script>
-<script>
-async function loadCSV() {
-  const r = await fetch('/csv');
-  if (!r.ok) {
-    console.error("CSV fetch failed", r.status);
-    return [];
-  }
-  const text = await r.text();
-  const lines = text.split('\n').slice(1);
-  const heat = [];
-  for (const ln of lines) {
-    if (!ln.trim()) continue;
-    const cols = ln.split(',');
-    const lat = parseFloat(cols[1]), lon = parseFloat(cols[2]);
-    const waste = (cols[8] || "").toLowerCase();
-    let w = 1;
-    if (waste.includes('hazard')) w = 3;
-    else if (waste.includes('wet')) w = 2;
-    if (isFinite(lat) && isFinite(lon)) heat.push([lat, lon, w]);
-  }
-  return heat;
-}
+  <header>
+    <div>
+      <h1>PAVITRAX | ULB Command Dashboard</h1>
+      <div class="meta">Autonomous smart waste-segregation boat • Live IoT + AI • Govt grade</div>
+    </div>
+    <div class="meta" id="last-update">Last update: --</div>
+  </header>
 
-(async ()=>{
-  const heatData = await loadCSV();
-  const map = L.map('map').setView([22.5726,88.3639], 13);
-  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
-  L.heatLayer(heatData, {radius: 25}).addTo(map);
-})();
-</script>
+  <nav id="nav">
+    <button data-target="dashboard" class="active">Dashboard</button>
+    <button data-target="classification">Waste Classification</button>
+    <button data-target="heatmap">Heatmap</button>
+    <button data-target="weekly">7-Day Analysis</button>
+    <button data-target="notifications">Notifications</button>
+    <button data-target="export">Data Export</button>
+    <button data-target="about">About</button>
+  </nav>
+
+  <main>
+    <section id="dashboard" class="active">
+      <div class="grid cards-4">
+        <div class="card"><h3>Boat Location</h3><div class="value" id="boat-location">--</div><div class="meta" id="boat-heading">Heading: --°</div></div>
+        <div class="card"><h3>Speed</h3><div class="value" id="boat-speed">-- m/s</div><div class="meta">Propulsion live</div></div>
+        <div class="card"><h3>Ultrasonic</h3><div class="value" id="ultrasonic">-- cm</div><span class="pill warn" id="obstacle-pill">Monitoring</span></div>
+        <div class="card"><h3>Battery</h3><div class="value" id="battery">-- V</div><span class="pill" id="battery-pill">--</span></div>
+        <div class="card"><h3>Gas (MQ2/MQ135)</h3><div class="value" id="gas-values">--</div><span class="pill danger" id="pollution-pill">Pollution watch</span></div>
+        <div class="card"><h3>Temperature</h3><div class="value" id="temp">-- °C</div></div>
+        <div class="card"><h3>Moisture (Wet/Dry)</h3><div class="value" id="moisture">-- / --</div></div>
+        <div class="card"><h3>Bin Weight</h3><div class="value" id="weight">-- g</div><span class="pill" id="bin-pill">Capacity ok</span></div>
+        <div class="card"><h3>Conveyors</h3><div class="value" id="conveyors">Wet: -- | Dry: --</div></div>
+        <div class="card"><h3>Mode</h3><div class="value" id="mode">--</div></div>
+      </div>
+
+      <div class="two-col" style="margin-top:16px;">
+        <div class="card">
+          <h3>Boat Map</h3>
+          <div id="map"></div>
+        </div>
+        <div class="card">
+          <h3>Stability (ADX)</h3>
+          <canvas id="stabilityChart" height="150"></canvas>
+        </div>
+      </div>
+
+      <div class="card" style="margin-top:16px;">
+        <h3>Controls</h3>
+        <div class="controls" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:10px;">
+          <button onclick="sendCommand({action:'forward'})">Move Forward</button>
+          <button onclick="sendCommand({action:'left'})">Move Left</button>
+          <button onclick="sendCommand({action:'right'})">Move Right</button>
+          <button class="danger" onclick="sendCommand({action:'stop'})">Stop</button>
+          <button class="alt" onclick="sendCommand({belt:'wet_on'})">Conveyor Wet</button>
+          <button class="alt" onclick="sendCommand({belt:'dry_on'})">Conveyor Dry</button>
+          <button onclick="sendCommand({mode:'autonomous_toggle'})">Auto Segregation</button>
+          <button onclick="sendCommand({mode:'navigation_toggle'})">Auto Navigation</button>
+        </div>
+      </div>
+    </section>
+
+    <section id="classification">
+      <div class="card">
+        <h3>YOLOv8n Results (latest)</h3>
+        <div class="grid cards-4">
+          <div class="card"><h3>Dry</h3><div class="value" id="stat-dry">--</div></div>
+          <div class="card"><h3>Wet</h3><div class="value" id="stat-wet">--</div></div>
+          <div class="card"><h3>Hazardous</h3><div class="value" id="stat-hazard">--</div><span class="pill danger" id="hazard-flag">Monitoring</span></div>
+          <div class="card"><h3>Metal/Plastic</h3><div class="value" id="stat-metal">--</div></div>
+        </div>
+        <div class="two-col" style="margin-top:12px;">
+          <div class="card">
+            <h3>Hazard Monitor</h3>
+            <div class="value" id="latest-hazard">--</div>
+            <div class="meta">Cam detections marked hazardous will appear here.</div>
+          </div>
+          <div class="card">
+            <h3>Air & Temp</h3>
+            <div class="value" id="air-temp">--</div>
+            <div class="meta">MQ135 | MQ2 | DS18B20</div>
+          </div>
+        </div>
+        <table id="classification-table" style="margin-top:12px;">
+          <thead><tr><th>Type</th><th>Count</th><th>Avg Confidence</th></tr></thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </section>
+
+    <section id="heatmap">
+      <div class="card">
+        <h3>Waste Density Heatmap</h3>
+        <div id="heatmap"></div>
+      </div>
+    </section>
+
+    <section id="weekly">
+      <div class="two-col">
+        <div class="card">
+          <h3>Waste Collected (7-day)</h3>
+          <canvas id="weeklyChart" height="160"></canvas>
+        </div>
+        <div class="card">
+          <h3>Environmental Trends</h3>
+          <canvas id="envChart" height="160"></canvas>
+        </div>
+      </div>
+    </section>
+
+    <section id="notifications">
+      <div class="card">
+        <h3>Live Alerts</h3>
+        <div id="alerts"></div>
+      </div>
+    </section>
+
+    <section id="export">
+      <div class="card">
+        <h3>Data Export</h3>
+        <p>Download ready-to-share CSV/PDF with charts and statistics.</p>
+        <div class="controls" style="display:flex;gap:12px;flex-wrap:wrap;">
+          <button onclick="downloadFile('/api/export/csv')">Download CSV</button>
+          <button class="alt" onclick="downloadFile('/api/export/pdf')">Download PDF</button>
+        </div>
+      </div>
+    </section>
+
+    <section id="about">
+      <div class="card">
+        <h3>About the Project</h3>
+        <p><strong>Mission:</strong> Deliver a resilient, low-cost autonomous waste-segregation platform for Urban Local Bodies, compliant with SIH mandates.</p>
+        <p><strong>Team:</strong> Robotics + AI + Embedded + Cloud working with NEO6M, HMC5883L, JSN-SR04T, HX711, MQ2, MQ135, DS18B20, LJ12A3, ADX, dual conveyors and propellers.</p>
+        <p><strong>Why better:</strong> Real-time IoT + AI loop, dual-bin moisture-aware conveyors, hazardous detection, obstacle & tilt protection, exportable evidence packs, sub-₹2500 electronics (excluding hull).</p>
+        <p><strong>Future scope:</strong> Fleet orchestration, predictive routing, SLA dashboards, auto-reports to pollution boards, integration with city open-data portals.</p>
+      </div>
+    </section>
+  </main>
+
+  <script>
+    const API_BASE = location.origin.includes('3000') ? location.origin.replace('3000','4000') : location.origin;
+    let map, heatLayer, stabilityChart, weeklyChart, envChart, socket;
+    const stabilityData = { labels: [], x: [], y: [], z: [] };
+
+    function setActive(target) {
+      document.querySelectorAll('nav button').forEach(btn => btn.classList.toggle('active', btn.dataset.target === target));
+      document.querySelectorAll('main section').forEach(sec => sec.classList.toggle('active', sec.id === target));
+    }
+    document.getElementById('nav').addEventListener('click', (e) => {
+      if (e.target.tagName === 'BUTTON') setActive(e.target.dataset.target);
+    });
+
+    function updateCards(data) {
+      const loc = data.gps?.lat ? `${data.gps.lat.toFixed(5)}, ${data.gps.lon?.toFixed(5)}` : '--';
+      document.getElementById('boat-location').innerText = loc;
+      document.getElementById('boat-heading').innerText = `Heading: ${data.heading ?? '--'}°`;
+      document.getElementById('boat-speed').innerText = `${data.speed ?? '--'} m/s`;
+      document.getElementById('ultrasonic').innerText = `${data.ultrasonic_cm ?? '--'} cm`;
+      document.getElementById('temp').innerText = `${data.temperature_c ?? '--'} °C`;
+      document.getElementById('gas-values').innerText = `${data.gas?.mq2 ?? '--'} / ${data.gas?.mq135 ?? '--'}`;
+      document.getElementById('air-temp').innerText = `MQ135: ${data.gas?.mq135 ?? '--'} | MQ2: ${data.gas?.mq2 ?? '--'} | Temp: ${data.temperature_c ?? '--'}°C`;
+      document.getElementById('moisture').innerText = `${data.moisture?.wet_bin ?? '--'} / ${data.moisture?.dry_bin ?? '--'}`;
+      document.getElementById('weight').innerText = `${data.loadcell_grams ?? '--'}`;
+      document.getElementById('battery').innerText = `${data.battery_volt ?? '--'} V`;
+      document.getElementById('conveyors').innerText = `Wet: ${data.conveyor?.wet_active ? 'ON' : 'OFF'} | Dry: ${data.conveyor?.dry_active ? 'ON' : 'OFF'}`;
+      document.getElementById('mode').innerText = data.mode?.autonomous ? 'Autonomous' : 'Manual';
+      document.getElementById('last-update').innerText = `Last update: ${new Date().toLocaleTimeString()}`;
+      // pills
+      document.getElementById('battery-pill').innerText = (data.battery_volt || 0) < 10.8 ? 'Low battery' : 'Healthy';
+      document.getElementById('bin-pill').innerText = (data.loadcell_grams || 0) > 4500 ? 'Bin full' : 'Capacity ok';
+      if (data.waste?.type && String(data.waste.type).toLowerCase().includes('hazard')) {
+        document.getElementById('latest-hazard').innerText = `Hazardous: ${data.waste.type} (${(data.waste.confidence || 0).toFixed(2)})`;
+        document.getElementById('hazard-flag').innerText = 'Hazard detected';
+        document.getElementById('hazard-flag').classList.add('danger');
+      }
+    }
+
+    function updateStability(acc) {
+      const ts = new Date().toLocaleTimeString();
+      stabilityData.labels.push(ts);
+      stabilityData.x.push(acc?.x ?? 0);
+      stabilityData.y.push(acc?.y ?? 0);
+      stabilityData.z.push(acc?.z ?? 0);
+      if (stabilityData.labels.length > 30) {
+        stabilityData.labels.shift(); stabilityData.x.shift(); stabilityData.y.shift(); stabilityData.z.shift();
+      }
+      stabilityChart.data.labels = stabilityData.labels;
+      stabilityChart.data.datasets[0].data = stabilityData.x;
+      stabilityChart.data.datasets[1].data = stabilityData.y;
+      stabilityChart.data.datasets[2].data = stabilityData.z;
+      stabilityChart.update('none');
+    }
+
+    function sendCommand(cmd) {
+      fetch(`${API_BASE}/api/control/send`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(cmd)
+      }).catch(console.error);
+      if (socket) socket.emit('command', cmd);
+    }
+
+    function downloadFile(path) {
+      window.open(`${API_BASE}${path}`, '_blank');
+    }
+
+    async function fetchJson(path) {
+      const res = await fetch(`${API_BASE}${path}`);
+      return res.json();
+    }
+
+    async function loadClassification() {
+      const data = await fetchJson('/api/analytics/classification');
+      const tbody = document.querySelector('#classification-table tbody');
+      tbody.innerHTML = '';
+      const counts = { dry: 0, wet: 0, hazardous: 0, metal: 0 };
+      (data.data || []).forEach(row => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `<td>${row._id || 'unknown'}</td><td>${row.count}</td><td>${(row.avgConfidence||0).toFixed(2)}</td>`;
+        tbody.appendChild(tr);
+        const t = (row._id || '').toLowerCase();
+        if (t.includes('wet')) counts.wet = row.count;
+        else if (t.includes('hazard')) counts.hazardous = row.count;
+        else if (t.includes('metal') || t.includes('plastic')) counts.metal = row.count;
+        else counts.dry += row.count;
+      });
+      document.getElementById('stat-dry').innerText = counts.dry;
+      document.getElementById('stat-wet').innerText = counts.wet;
+      document.getElementById('stat-hazard').innerText = counts.hazardous;
+      document.getElementById('stat-metal').innerText = counts.metal;
+    }
+
+    async function loadWeekly() {
+      const data = await fetchJson('/api/analytics/weekly');
+      const labels = data.data.map(d => d._id.day);
+      const weights = data.data.map(d => d.totalWeight || 0);
+      const wet = data.data.map(d => d.wet || 0);
+      const dry = data.data.map(d => d.dry || 0);
+      const haz = data.data.map(d => d.hazardous || 0);
+      weeklyChart.data.labels = labels;
+      weeklyChart.data.datasets[0].data = wet;
+      weeklyChart.data.datasets[1].data = dry;
+      weeklyChart.data.datasets[2].data = haz;
+      weeklyChart.update('none');
+      envChart.data.labels = labels;
+      envChart.data.datasets[0].data = data.data.map(d => d.avgTemp || 0);
+      envChart.data.datasets[1].data = data.data.map(d => d.avgGas || 0);
+      envChart.update('none');
+    }
+
+    async function loadHeatmap() {
+      const data = await fetchJson('/api/analytics/heatmap');
+      if (!heatLayer) {
+        heatLayer = L.heatLayer(data.data || [], { radius: 25 }).addTo(map);
+      } else {
+        heatLayer.setLatLngs(data.data || []);
+      }
+    }
+
+    async function loadAlerts() {
+      const data = await fetchJson('/api/alerts');
+      const container = document.getElementById('alerts');
+      container.innerHTML = '';
+      (data.data || []).forEach(al => {
+        const div = document.createElement('div');
+        div.className = 'alert';
+        div.innerHTML = `<strong>${al.type}</strong> • ${al.message} <div class="meta">${new Date(al.createdAt).toLocaleString()}</div>`;
+        container.appendChild(div);
+      });
+    }
+
+    function initCharts() {
+      stabilityChart = new Chart(document.getElementById('stabilityChart'), {
+        type: 'line',
+        data: {
+          labels: [],
+          datasets: [
+            { label: 'X', data: [], borderColor: '#2563eb', tension: 0.3 },
+            { label: 'Y', data: [], borderColor: '#10b981', tension: 0.3 },
+            { label: 'Z', data: [], borderColor: '#f59e0b', tension: 0.3 }
+          ]
+        },
+        options: { plugins: { legend: { display: true } }, scales: { y: { suggestedMin: -2, suggestedMax: 2 } } }
+      });
+      weeklyChart = new Chart(document.getElementById('weeklyChart'), {
+        type: 'bar',
+        data: { labels: [], datasets: [
+          { label: 'Wet', data: [], backgroundColor: '#10b981' },
+          { label: 'Dry', data: [], backgroundColor: '#2563eb' },
+          { label: 'Hazard', data: [], backgroundColor: '#f59e0b' }
+        ]},
+        options: { responsive: true, plugins: { legend: { position: 'bottom' } } }
+      });
+      envChart = new Chart(document.getElementById('envChart'), {
+        type: 'line',
+        data: { labels: [], datasets: [
+          { label: 'Temperature °C', data: [], borderColor: '#dc2626', tension: 0.3 },
+          { label: 'Gas MQ135', data: [], borderColor: '#0ea5e9', tension: 0.3 }
+        ]},
+        options: { plugins: { legend: { position: 'bottom' } } }
+      });
+    }
+
+    function initMap() {
+      map = L.map('map').setView([22.5726, 88.3639], 13);
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19 }).addTo(map);
+      const marker = L.marker([22.5726, 88.3639]).addTo(map);
+      return marker;
+    }
+
+    async function bootstrap() {
+      initCharts();
+      const marker = initMap();
+      await loadClassification();
+      await loadWeekly();
+      await loadHeatmap();
+      await loadAlerts();
+
+      socket = io(API_BASE, { transports: ['websocket'] });
+      socket.on('telemetry', (payload) => {
+        const d = payload.data || {};
+        updateCards(d);
+        updateStability(d.accelerometer || {});
+        if (d.lat && d.lon) {
+          marker.setLatLng([d.lat, d.lon]);
+          map.setView([d.lat, d.lon]);
+        }
+      });
+
+      // initial pull in case websocket hasn't fired yet
+      const latest = await fetchJson('/api/sensors/latest?n=1');
+      if (latest.data && latest.data[0]) {
+        updateCards(latest.data[0].data || {});
+      }
+
+      setInterval(loadClassification, 15000);
+      setInterval(loadWeekly, 60000);
+      setInterval(loadHeatmap, 20000);
+      setInterval(loadAlerts, 30000);
+    }
+
+    bootstrap().catch(console.error);
+  </script>
 </body>
 </html>

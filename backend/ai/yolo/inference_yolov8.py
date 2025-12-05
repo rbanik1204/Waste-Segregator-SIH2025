@@ -1,31 +1,38 @@
 # ai/yolo/inference_yolov8.py
+# Enhanced inference script for floating waste detection
 import argparse, sys, os, json
+from pathlib import Path
 from ultralytics import YOLO
 
-parser = argparse.ArgumentParser()
+parser = argparse.ArgumentParser(description='YOLOv8 inference for floating waste detection')
 parser.add_argument("--image", required=True, help="Path to image file")
-parser.add_argument("--model", default="./backend/ai/yolo/yolov8n.pt", help="Model path")
-parser.add_argument("--conf", type=float, default=0.25)
+parser.add_argument("--model", default=None, help="Model path (auto-detected if not specified)")
+parser.add_argument("--conf", type=float, default=0.25, help="Confidence threshold")
+parser.add_argument("--iou", type=float, default=0.45, help="IoU threshold for NMS")
+parser.add_argument("--all", action="store_true", help="Return all detections, not just best")
 args = parser.parse_args()
 
+# Auto-detect model path (prioritize trained model)
+ROOT = Path(__file__).resolve().parent
 MODEL_CANDIDATES = [
-    args.model,
-    "./backend/ai/yolo/yolov8n.pt",
-    "/mnt/data/yolov8n.pt"
+    args.model,  # User-specified
+    str(ROOT / "yolov8n.pt"),  # Trained model in yolo directory
+    str(ROOT.parent.parent / "yolov8n.pt"),  # Root directory
+    "./backend/ai/yolo/yolov8n.pt",  # Relative path
+    "/mnt/data/yolov8n.pt"  # Alternative location
 ]
 
 model_path = None
 for p in MODEL_CANDIDATES:
-    try:
-        if os.path.exists(p):
-            model_path = p
-            break
-    except Exception:
-        continue
+    if p and os.path.exists(p):
+        model_path = p
+        print(f"✓ Using model: {p}", file=sys.stderr)
+        break
 
 if model_path is None:
-    # allow ultralytics to try a model name
-    model_path = args.model
+    # Fallback: use pretrained model name (will download if needed)
+    model_path = "yolov8n.pt"
+    print(f"⚠ Model not found, using pretrained: {model_path}", file=sys.stderr)
 
 try:
     model = YOLO(model_path)
@@ -33,14 +40,23 @@ except Exception:
     print("-")
     sys.exit(0)
 
+# Run inference with optimized settings for floating waste
 results = None
 try:
-    results = model.predict(args.image, conf=args.conf, verbose=False)
-except Exception:
+    results = model.predict(
+        args.image,
+        conf=args.conf,
+        iou=args.iou,
+        verbose=False,
+        imgsz=640,  # Match training size
+        augment=False  # Disable augmentation for inference
+    )
+except Exception as e:
+    print(f"Error during inference: {e}", file=sys.stderr)
     print("-")
     sys.exit(0)
 
-if not results:
+if not results or len(results) == 0:
     print("-")
     sys.exit(0)
 
@@ -49,33 +65,62 @@ if len(res.boxes) == 0:
     print("-")
     sys.exit(0)
 
-# choose box: prefer any box >= conf threshold; else return the box with lowest confidence
+# Get all detections
 boxes = res.boxes
-chosen_idx = 0
-try:
-    confidences = [float(b.conf[0].item()) if hasattr(b.conf[0], 'item') else float(b.conf[0]) for b in boxes]
-except Exception:
-    confidences = [float(b.conf) for b in boxes]
+detections = []
 
-# find indices above threshold
-above = [i for i,c in enumerate(confidences) if c >= args.conf]
-if above:
-    # pick the highest confidence among those
-    chosen_idx = max(above, key=lambda i: confidences[i])
+try:
+    for i, box in enumerate(boxes):
+        try:
+            cls = int(box.cls[0].item())
+        except Exception:
+            cls = int(box.cls[0])
+        
+        try:
+            conf = float(box.conf[0].item())
+        except Exception:
+            conf = float(box.conf[0])
+        
+        # Get label name
+        if hasattr(res, "names") and res.names:
+            label = res.names.get(cls, f"class_{cls}")
+        else:
+            label = f"class_{cls}"
+        
+        # Get bounding box coordinates
+        try:
+            xyxy = box.xyxy[0].tolist() if hasattr(box.xyxy[0], 'tolist') else box.xyxy[0]
+        except Exception:
+            xyxy = [0, 0, 0, 0]
+        
+        detections.append({
+            "label": label,
+            "confidence": conf,
+            "class_id": cls,
+            "bbox": xyxy
+        })
+except Exception as e:
+    print(f"Error processing detections: {e}", file=sys.stderr)
+    print("-")
+    sys.exit(0)
+
+if not detections:
+    print("-")
+    sys.exit(0)
+
+# Return all detections or just the best one
+if args.all:
+    # Return JSON with all detections
+    output = {
+        "detections": detections,
+        "count": len(detections)
+    }
+    print(json.dumps(output))
 else:
-    # pick lowest-confidence match (as requested)
-    chosen_idx = min(range(len(confidences)), key=lambda i: confidences[i])
+    # Return best detection (highest confidence)
+    best = max(detections, key=lambda x: x["confidence"])
+    label = best["label"]
+    conf = best["confidence"]
+    print(f"{label}:{conf:.2f}")
 
-box = boxes[chosen_idx]
-try:
-    cls = int(box.cls[0].item())
-except Exception:
-    cls = int(box.cls[0])
-try:
-    conf = float(box.conf[0].item())
-except Exception:
-    conf = float(box.conf[0])
-label = res.names.get(cls, f"class_{cls}") if hasattr(res, "names") else f"class_{cls}"
-
-print(f"{label}:{conf:.2f}")
 sys.exit(0)

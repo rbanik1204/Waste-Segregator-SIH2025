@@ -1,9 +1,10 @@
 # ai/api/main.py
 from fastapi import FastAPI, File, Form, UploadFile
 from fastapi.responses import JSONResponse, FileResponse
-import uvicorn, os, csv, datetime, json, subprocess
+import uvicorn, os, csv, datetime, json, subprocess, sys, tempfile, base64
 from pathlib import Path
 from typing import Optional
+import requests
 
 ROOT = Path(__file__).resolve().parents[1]  # ai/
 DATA_DIR = ROOT.parent / "data"
@@ -272,6 +273,97 @@ async def image(
 	return JSONResponse({
 		"status":"ok",
 		"path": str(out_path),
+		"prediction": pred,
+		"yolo_raw": pred,
+		"waste_category": waste_label,
+		"waste_subtype": waste_type,
+		"waste_state": waste_state,
+		"hazard": int(hazard),
+		"hazard_type": hazard_type,
+	})
+
+
+@app.post("/image_base64")
+def image_base64(payload: dict):
+	"""Accept base64 image string for ESP32-CAM posts."""
+	image_b64 = payload.get("imageBase64")
+	sensors = payload.get("sensors", {})
+	if not image_b64:
+		return JSONResponse({"status": "error", "error": "imageBase64 required"}, status_code=400)
+	try:
+		raw = base64.b64decode(image_b64.split(",")[-1])
+		with tempfile.NamedTemporaryFile(delete=False, suffix=".jpg") as tmp:
+			tmp.write(raw)
+			tmp_path = Path(tmp.name)
+	except Exception as e:
+		return JSONResponse({"status": "error", "error": f"decode failed: {e}"}, status_code=500)
+
+	return image_url({"imageUrl": None, "sensors": sensors, "tmp_path": str(tmp_path)})
+
+
+@app.post("/image_url")
+def image_url(payload: dict):
+	image_url = payload.get("imageUrl")
+	tmp_override = payload.get("tmp_path")
+	sensors = payload.get("sensors", {})
+	if not image_url and not tmp_override:
+		return JSONResponse({"status": "error", "error": "imageUrl required"}, status_code=400)
+	try:
+		if tmp_override:
+			tmp_path = Path(tmp_override)
+		else:
+			resp = requests.get(image_url, timeout=10)
+			resp.raise_for_status()
+			with tempfile.NamedTemporaryFile(delete=False, suffix=".jpg") as tmp:
+				tmp.write(resp.content)
+				tmp_path = Path(tmp.name)
+	except Exception as e:
+		return JSONResponse({"status": "error", "error": f"download failed: {e}"}, status_code=500)
+
+	model = get_model_path()
+	pred = "-"
+	raw_label = "-"
+	try:
+		proc = subprocess.run([
+			sys.executable,
+			str(ROOT / "yolo" / "inference_yolov8.py"),
+			"--image",
+			str(tmp_path),
+			"--model",
+			model,
+		], capture_output=True, text=True, timeout=30)
+		pred = proc.stdout.strip() or "-"
+	except Exception:
+		pred = "-"
+	if pred and pred != "-":
+		raw_label = pred.split(":")[0]
+
+	try:
+		from .yolo.utils_yolo import classify_label as classify_local
+	except Exception:
+		from ..yolo.utils_yolo import classify_label as classify_local
+	waste_label, waste_type = classify_local(raw_label) if raw_label else ("unknown", "")
+	waste_state, hazard, hazard_type = classify_waste_and_hazard_from_label(raw_label)
+
+	# write telemetry row
+	ts = datetime.datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S")
+	def sget(k, default=""):
+		return sensors.get(k, default)
+	row = [
+		ts, sget("device_id"), sget("boat_id"), sget("lat"), sget("lon"),
+		sget("heading_deg"), sget("mq135_ppm"), sget("mq2_ppm"), sget("soil_dry_belt_pct"),
+		sget("soil_wet_belt_pct"), sget("loadcell_grams"), sget("tds_ppm"), sget("ultrasonic_cm"),
+		sget("proximity_inductive"), str(tmp_path), pred, waste_label, waste_type,
+		sget("collection_event"), sget("collection_bin_id"), sget("battery_volt"), sget("rssi"),
+	]
+	append_row(row)
+	try:
+		os.remove(tmp_path)
+	except Exception:
+		pass
+	return JSONResponse({
+		"status": "ok",
+		"path": str(tmp_path),
 		"prediction": pred,
 		"yolo_raw": pred,
 		"waste_category": waste_label,

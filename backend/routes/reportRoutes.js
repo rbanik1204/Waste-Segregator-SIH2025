@@ -1,14 +1,11 @@
 const express = require('express');
 const router = express.Router();
-const reportController = require('../controllers/reportController');
+const exportController = require('../controllers/exportController');
 
 // GET /api/reports/csv
 router.get('/csv', (req, res) => {
   try {
-    const csv = reportController.generateCSV();
-    res.header('Content-Type', 'text/csv');
-    res.attachment('pavitrax_telemetry.csv');
-    return res.send(csv);
+    return exportController.exportCsv(req, res);
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: 'CSV generation failed' });
