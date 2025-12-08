@@ -26,9 +26,10 @@ async function ingest(payload, source = 'mqtt') {
     ultrasonic_cm: payload.data?.ultrasonic_cm || payload.data?.ultrasonic,
     accelerometer: payload.data?.accelerometer || payload.data?.adx || payload.data?.accel,
     temperature_c: payload.data?.temperature || payload.data?.temp_c || payload.data?.temp,
+    tds_ppm: payload.data?.tds || payload.data?.tds_ppm, // Total Dissolved Solids
     gas: {
-      mq2: payload.data?.mq2,
-      mq135: payload.data?.mq135
+      mq2: payload.data?.mq2 || payload.data?.mq2_ppm,
+      mq135: payload.data?.mq135 || payload.data?.mq135_ppm
     },
     moisture: {
       dry_bin: payload.data?.moisture_dry,

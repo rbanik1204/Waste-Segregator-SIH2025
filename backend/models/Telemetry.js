@@ -15,13 +15,14 @@ const TelemetrySchema = new mongoose.Schema({
     z: Number
   },
   temperature_c: Number,
+  tds_ppm: Number, // Total Dissolved Solids - water health indicator
   gas: {
-    mq2: Number,
-    mq135: Number
+    mq2: Number, // Air quality: smoke, alcohol, LPG, propane, methane
+    mq135: Number // Air quality: ammonia, benzene, CO2, NOx, alcohol, smoke
   },
   moisture: {
-    dry_bin: Number,
-    wet_bin: Number
+    dry_bin: Number, // Capacitive moisture sensor for dry waste bin
+    wet_bin: Number  // Capacitive moisture sensor for wet waste bin
   },
   loadcell_grams: Number,
   battery_volt: Number,

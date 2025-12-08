@@ -1,3 +1,213 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <title>PAVITRAX | Smart Waste-Segregation Boat</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css"/>
+  <link rel="stylesheet" href="./app.css"/>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+  <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+  <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+  <script src="https://unpkg.com/leaflet.heat/dist/leaflet-heat.js"></script>
+</head>
+<body>
+  <header>
+    <div class="brand">
+      <div class="logo">P</div>
+      PAVITRAX
+    </div>
+    <nav id="nav">
+      <button data-target="dashboard" class="active">Dashboard</button>
+      <button data-target="live">Live Control</button>
+      <button data-target="analytics">Analytics</button>
+      <button data-target="predictions">Predictions</button>
+      <button data-target="reports">Reports</button>
+      <button data-target="heatmap">Heatmap</button>
+      <button data-target="about">About</button>
+    </nav>
+  </header>
+
+  <main>
+    <!-- Dashboard -->
+    <section id="dashboard" class="active">
+      <div class="status-bar">
+        <div class="card"><div>Status</div><div class="pill success">Online</div></div>
+        <div class="card"><div>Battery</div><div id="battery">-- V</div></div>
+        <div class="card"><div>GPS Lock</div><div class="pill info">Acquired</div></div>
+        <div class="card"><div>Motors</div><div class="pill warn">Active</div></div>
+      </div>
+
+      <div class="grid cards-4" style="margin-top:16px;">
+        <div class="card"><h3>Boat Location (NEO-6M GPS)</h3><div class="value" id="boat-location">--</div><div class="subtitle" id="boat-heading">Heading: --°</div></div>
+        <div class="card"><h3>Speed</h3><div class="value" id="boat-speed">-- m/s</div><div class="subtitle">Propeller motors (L298N)</div></div>
+        <div class="card"><h3>Ultrasonic (Waterproof)</h3><div class="value" id="ultrasonic">-- cm</div><span class="pill warn" id="obstacle-pill">Monitoring</span></div>
+        <div class="card"><h3>Battery</h3><div class="value" id="battery-val">-- V</div><span class="pill" id="battery-pill">--</span></div>
+        <div class="card"><h3>Air Quality (MQ135)</h3><div class="value" id="mq135-value">-- ppm</div><div class="subtitle" id="mq135-pollutants">NH₃, CO₂, NOx, C₆H₆, Benzene</div><span class="pill danger" id="pollution-pill">Monitoring</span></div>
+        <div class="card"><h3>Air Quality (MQ2)</h3><div class="value" id="mq2-value">-- ppm</div><div class="subtitle" id="mq2-pollutants">Smoke, Alcohol, LPG, CH₄, Benzene</div></div>
+        <div class="card"><h3>Water Temp (DS18B20)</h3><div class="value" id="temp">-- °C</div></div>
+        <div class="card"><h3>TDS (Water Health)</h3><div class="value" id="tds-value">-- ppm</div><div class="subtitle" id="tds-status">--</div><span class="pill" id="tds-pill">--</span></div>
+        <div class="card"><h3>Moisture (Dry Bin)</h3><div class="value" id="moisture-dry">-- %</div><div class="subtitle">Capacitive sensor</div></div>
+        <div class="card"><h3>Moisture (Wet Bin)</h3><div class="value" id="moisture-wet">-- %</div><div class="subtitle">Capacitive sensor</div></div>
+        <div class="card"><h3>Bin Weight (HX711)</h3><div class="value" id="weight">-- g</div><span class="pill" id="bin-pill">Capacity ok</span></div>
+        <div class="card"><h3>Conveyors (L298N)</h3><div class="value" id="conveyors">Wet: -- | Dry: --</div><div class="subtitle">ESP8266</div></div>
+        <div class="card"><h3>Propellers (L298N)</h3><div class="value" id="propellers">Status: --</div><div class="subtitle">ESP8266</div></div>
+        <div class="card"><h3>Mode</h3><div class="value" id="mode">--</div><div class="subtitle" id="image-status">ESP32-CAM: Image Processing Only</div></div>
+      </div>
+
+      <div class="row" style="margin-top:16px;">
+        <div class="card">
+          <h3>Boat Map</h3>
+          <div id="map"></div>
+        </div>
+        <div class="card">
+          <h3>Stability (ADX)</h3>
+          <canvas id="stabilityChart" height="160"></canvas>
+        </div>
+      </div>
+
+      <div class="card" style="margin-top:16px;">
+        <h3>Live Controls</h3>
+        <div class="controls-grid">
+          <button class="btn" data-cmd="forward">Move Forward</button>
+          <button class="btn" data-cmd="left">Move Left</button>
+          <button class="btn" data-cmd="right">Move Right</button>
+          <button class="btn danger" data-cmd="stop">Stop</button>
+          <button class="btn alt" data-cmd="wet_on">Conveyor Wet</button>
+          <button class="btn alt" data-cmd="dry_on">Conveyor Dry</button>
+          <button class="btn" data-cmd="auto_toggle">Auto Segregation</button>
+          <button class="btn" data-cmd="nav_toggle">Auto Navigation</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- Live Control -->
+    <section id="live">
+      <div class="row">
+        <div class="card">
+          <h3>Directional Controls</h3>
+          <div class="controls-grid">
+            <button class="btn" data-cmd="forward">Forward</button>
+            <button class="btn" data-cmd="left">Left</button>
+            <button class="btn" data-cmd="right">Right</button>
+            <button class="btn danger" data-cmd="stop">Stop</button>
+          </div>
+        </div>
+        <div class="card">
+          <h3>Live Camera Feed (ESP32-CAM)</h3>
+          <div class="subtitle">Streaming...</div>
+          <div style="height:240px;background:#0b1224;border-radius:12px;display:grid;place-items:center;color:#94a3b8;">Live stream</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Analytics -->
+    <section id="analytics">
+      <div class="grid cards-4">
+        <div class="card"><div class="subtitle">Total Waste Collected</div><div class="kpi" id="kpi-waste">-- Kg</div></div>
+        <div class="card"><div class="subtitle">Avg TDS Level</div><div class="kpi" id="kpi-tds">-- ppm</div></div>
+        <div class="card"><div class="subtitle">Avg Temperature</div><div class="kpi" id="kpi-temp">-- °C</div></div>
+        <div class="card"><div class="subtitle">Avg Air Quality</div><div class="kpi" id="kpi-aqi">-- PPM</div></div>
+      </div>
+
+      <div class="row" style="margin-top:16px;">
+        <div class="card">
+          <h3>Daily Waste Collection</h3>
+          <canvas id="wasteChart" height="220"></canvas>
+        </div>
+        <div class="card">
+          <h3>TDS Level Trend</h3>
+          <canvas id="tdsTrend" height="160"></canvas>
+          <h3 style="margin-top:16px;">Water Temperature Trend</h3>
+          <canvas id="tempTrend" height="160"></canvas>
+          <h3 style="margin-top:16px;">Air Quality (MQ135)</h3>
+          <canvas id="aqiTrend" height="160"></canvas>
+        </div>
+      </div>
+
+      <div class="card" style="margin-top:16px;">
+        <h3>Correlation Analysis (TDS vs Waste)</h3>
+        <canvas id="correlationChart" height="200"></canvas>
+      </div>
+    </section>
+
+    <!-- Predictions -->
+    <section id="predictions">
+      <div class="card">
+        <h3>Overall Risk Level</h3>
+        <div class="subtitle">Based on predicted TDS, temperature, and air quality trends</div>
+        <div style="margin-top:12px;height:36px;background:linear-gradient(90deg,#10b981,#f59e0b,#f97316,#ef4444);border-radius:10px;position:relative;">
+          <div style="position:absolute;left:70%;top:-6px;width:12px;height:48px;border-radius:999px;background:#fff;border:2px solid #0f172a;"></div>
+        </div>
+      </div>
+      <div class="card" style="margin-top:16px;">
+        <h3>7-Day Waste Generation Forecast</h3>
+        <div style="height:260px;background:#f8fafc;border-radius:12px;display:grid;place-items:center;color:#6b7280;">Forecast chart placeholder</div>
+      </div>
+    </section>
+
+    <!-- Reports -->
+    <section id="reports">
+      <div class="grid cards-3">
+        <div class="card">
+          <h3>Report Period</h3>
+          <div class="list">
+            <div class="list-item">Daily Report</div>
+            <div class="list-item">Weekly Report</div>
+            <div class="list-item">Monthly Report</div>
+          </div>
+        </div>
+        <div class="card">
+          <h3>CSV Export</h3>
+          <p>Export data in CSV format.</p>
+          <button class="btn" onclick="downloadFile('/api/export/csv')">Generate CSV Report</button>
+        </div>
+        <div class="card">
+          <h3>PDF Export</h3>
+          <p>Generate comprehensive PDF reports.</p>
+          <button class="btn alt" onclick="downloadFile('/api/export/pdf')">Generate PDF Report</button>
+        </div>
+      </div>
+
+      <div class="card" style="margin-top:16px;">
+        <h3>Collection Records</h3>
+        <table class="table" id="records-table">
+          <thead><tr><th>Date</th><th>Dry</th><th>Wet</th><th>TDS</th><th>Temp</th><th>AQ (PPM)</th><th>GPS</th><th>Status</th></tr></thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- Heatmap -->
+    <section id="heatmap">
+      <div class="card">
+        <div class="flex" style="justify-content: space-between; align-items: center;">
+          <h3>Heatmap Analysis</h3>
+          <button class="btn alt" onclick="downloadFile('/api/export/csv')">Export Heatmap</button>
+        </div>
+        <div class="layer-toggle" style="margin:10px 0;">
+          <span class="pill active">Dry Waste Density</span>
+          <span class="pill">Wet Waste Density</span>
+          <span class="pill">Pollution Heatmap (TDS + AQI)</span>
+        </div>
+        <div id="heatmap"></div>
+      </div>
+    </section>
+
+    <!-- About -->
+    <section id="about">
+      <div class="card">
+        <h3>About the Project</h3>
+        <p><strong>Mission:</strong> Deliver a resilient, low-cost autonomous waste-segregation platform for Urban Local Bodies.</p>
+        <p><strong>Hardware:</strong> ESP32-CAM (image), ESP8266 (MQ135, MQ2, TDS, DS18B20, GPS, HMC5883L, moisture, ultrasonic, HX711), L298N drivers for conveyors & propellers.</p>
+        <p><strong>Why better:</strong> Real-time IoT + AI loop, dual-bin moisture-aware conveyors, hazardous detection, obstacle & tilt protection, exportable evidence packs.</p>
+      </div>
+    </section>
+  </main>
+
+  <script src="./app.js"></script>
+</body>
+</html>
 <!-- frontend/index.html -->
 <!doctype html>
 <html>
@@ -130,16 +340,20 @@
   <main>
     <section id="dashboard" class="active">
       <div class="grid cards-4">
-        <div class="card"><h3>Boat Location</h3><div class="value" id="boat-location">--</div><div class="meta" id="boat-heading">Heading: --°</div></div>
-        <div class="card"><h3>Speed</h3><div class="value" id="boat-speed">-- m/s</div><div class="meta">Propulsion live</div></div>
-        <div class="card"><h3>Ultrasonic</h3><div class="value" id="ultrasonic">-- cm</div><span class="pill warn" id="obstacle-pill">Monitoring</span></div>
+        <div class="card"><h3>Boat Location (NEO-6M GPS) - ESP8266</h3><div class="value" id="boat-location">--</div><div class="meta" id="boat-heading">Compass (HMC5883L): --°</div></div>
+        <div class="card"><h3>Speed</h3><div class="value" id="boat-speed">-- m/s</div><div class="meta">Propeller motors (L298N) - ESP8266</div></div>
+        <div class="card"><h3>Ultrasonic (Waterproof) - ESP8266</h3><div class="value" id="ultrasonic">-- cm</div><span class="pill warn" id="obstacle-pill">Monitoring</span></div>
         <div class="card"><h3>Battery</h3><div class="value" id="battery">-- V</div><span class="pill" id="battery-pill">--</span></div>
-        <div class="card"><h3>Gas (MQ2/MQ135)</h3><div class="value" id="gas-values">--</div><span class="pill danger" id="pollution-pill">Pollution watch</span></div>
-        <div class="card"><h3>Temperature</h3><div class="value" id="temp">-- °C</div></div>
-        <div class="card"><h3>Moisture (Wet/Dry)</h3><div class="value" id="moisture">-- / --</div></div>
-        <div class="card"><h3>Bin Weight</h3><div class="value" id="weight">-- g</div><span class="pill" id="bin-pill">Capacity ok</span></div>
-        <div class="card"><h3>Conveyors</h3><div class="value" id="conveyors">Wet: -- | Dry: --</div></div>
-        <div class="card"><h3>Mode</h3><div class="value" id="mode">--</div></div>
+        <div class="card"><h3>Air Quality (MQ135) - ESP8266</h3><div class="value" id="mq135-value">-- ppm</div><div class="meta" id="mq135-pollutants">NH₃, CO₂, NOx, C₆H₆, Benzene</div><span class="pill danger" id="pollution-pill">Monitoring</span></div>
+        <div class="card"><h3>Air Quality (MQ2) - ESP8266</h3><div class="value" id="mq2-value">-- ppm</div><div class="meta" id="mq2-pollutants">Smoke, Alcohol, LPG, CH₄, Benzene</div></div>
+        <div class="card"><h3>Water Temp (DS18B20) - ESP8266</h3><div class="value" id="temp">-- °C</div><div class="meta">Water temperature sensor</div></div>
+        <div class="card"><h3>TDS (Water Health) - ESP8266</h3><div class="value" id="tds-value">-- ppm</div><div class="meta" id="tds-status">--</div><span class="pill" id="tds-pill">--</span></div>
+        <div class="card"><h3>Moisture (Dry Bin) - ESP8266</h3><div class="value" id="moisture-dry">-- %</div><div class="meta">Capacitive soil moisture sensor</div></div>
+        <div class="card"><h3>Moisture (Wet Bin) - ESP8266</h3><div class="value" id="moisture-wet">-- %</div><div class="meta">Capacitive soil moisture sensor</div></div>
+        <div class="card"><h3>Bin Weight (HX711) - ESP8266</h3><div class="value" id="weight">-- g</div><span class="pill" id="bin-pill">Capacity ok</span></div>
+        <div class="card"><h3>Conveyor Belts (L298N) - ESP8266</h3><div class="value" id="conveyors">Wet: -- | Dry: --</div><div class="meta">2 motors via L298N driver</div></div>
+        <div class="card"><h3>Propeller Motors (L298N) - ESP8266</h3><div class="value" id="propellers">Status: --</div><div class="meta">2 gear motors via L298N</div></div>
+        <div class="card"><h3>Mode</h3><div class="value" id="mode">--</div><div class="meta" id="image-status">ESP32-CAM: Image Processing Only</div></div>
       </div>
 
       <div class="two-col" style="margin-top:16px;">
@@ -179,14 +393,26 @@
         </div>
         <div class="two-col" style="margin-top:12px;">
           <div class="card">
-            <h3>Hazard Monitor</h3>
+            <h3>Hazard Monitor (ESP32-CAM)</h3>
             <div class="value" id="latest-hazard">--</div>
-            <div class="meta">Cam detections marked hazardous will appear here.</div>
+            <div class="meta">Latest hazardous waste detection from ESP32-CAM</div>
+            <div class="meta" id="image-processing-status" style="margin-top:8px;font-size:11px;">ESP32-CAM: Image Processing Only</div>
           </div>
           <div class="card">
-            <h3>Air & Temp</h3>
-            <div class="value" id="air-temp">--</div>
-            <div class="meta">MQ135 | MQ2 | DS18B20</div>
+            <h3>Water Health Analysis (ESP8266)</h3>
+            <div class="value" id="water-health-status">--</div>
+            <div class="meta" id="water-health-detail" style="margin-top:4px;">TDS-based water quality assessment</div>
+            <div class="meta" id="pollution-zone" style="margin-top:4px;font-size:11px;">Zone: --</div>
+            <div class="meta" style="margin-top:4px;font-size:11px;">Before/After collection monitoring</div>
+          </div>
+        </div>
+        <div class="card" style="margin-top:12px;">
+          <h3>Environmental Risk Indicators</h3>
+          <div class="grid cards-4">
+            <div class="card"><h3>Algal Bloom Risk</h3><div class="value" id="algal-risk">--</div><div class="meta">Based on TDS + Temp (ESP8266)</div></div>
+            <div class="card"><h3>Sewage/Industrial Discharge</h3><div class="value" id="sewage-risk">--</div><div class="meta">High TDS indicator (ESP8266)</div></div>
+            <div class="card"><h3>Plastic Zone (Low TDS)</h3><div class="value" id="plastic-zone">--</div><div class="meta">TDS &lt; 50 ppm (ESP8266)</div></div>
+            <div class="card"><h3>Chemical Zone (High TDS)</h3><div class="value" id="chemical-zone">--</div><div class="meta">TDS &gt; 500 ppm (ESP8266)</div></div>
           </div>
         </div>
         <table id="classification-table" style="margin-top:12px;">
@@ -259,27 +485,159 @@
     });
 
     function updateCards(data) {
+      // GPS & Compass (NEO-6M & HMC5883L)
       const loc = data.gps?.lat ? `${data.gps.lat.toFixed(5)}, ${data.gps.lon?.toFixed(5)}` : '--';
       document.getElementById('boat-location').innerText = loc;
-      document.getElementById('boat-heading').innerText = `Heading: ${data.heading ?? '--'}°`;
+      document.getElementById('boat-heading').innerText = `Compass (HMC5883L): ${data.heading ?? '--'}°`;
       document.getElementById('boat-speed').innerText = `${data.speed ?? '--'} m/s`;
+      
+      // Ultrasonic (JSN-SR04T)
       document.getElementById('ultrasonic').innerText = `${data.ultrasonic_cm ?? '--'} cm`;
-      document.getElementById('temp').innerText = `${data.temperature_c ?? '--'} °C`;
-      document.getElementById('gas-values').innerText = `${data.gas?.mq2 ?? '--'} / ${data.gas?.mq135 ?? '--'}`;
-      document.getElementById('air-temp').innerText = `MQ135: ${data.gas?.mq135 ?? '--'} | MQ2: ${data.gas?.mq2 ?? '--'} | Temp: ${data.temperature_c ?? '--'}°C`;
-      document.getElementById('moisture').innerText = `${data.moisture?.wet_bin ?? '--'} / ${data.moisture?.dry_bin ?? '--'}`;
-      document.getElementById('weight').innerText = `${data.loadcell_grams ?? '--'}`;
+      
+      // Battery
       document.getElementById('battery').innerText = `${data.battery_volt ?? '--'} V`;
-      document.getElementById('conveyors').innerText = `Wet: ${data.conveyor?.wet_active ? 'ON' : 'OFF'} | Dry: ${data.conveyor?.dry_active ? 'ON' : 'OFF'}`;
-      document.getElementById('mode').innerText = data.mode?.autonomous ? 'Autonomous' : 'Manual';
-      document.getElementById('last-update').innerText = `Last update: ${new Date().toLocaleTimeString()}`;
-      // pills
       document.getElementById('battery-pill').innerText = (data.battery_volt || 0) < 10.8 ? 'Low battery' : 'Healthy';
+      document.getElementById('battery-pill').className = 'pill ' + ((data.battery_volt || 0) < 10.8 ? 'danger' : 'success');
+      
+      // Air Quality Sensors (ESP8266)
+      const mq135 = data.mq135_ppm ?? data.gas?.mq135 ?? '--';
+      const mq2 = data.mq2_ppm ?? data.gas?.mq2 ?? '--';
+      document.getElementById('mq135-value').innerText = `${mq135} ppm`;
+      document.getElementById('mq2-value').innerText = `${mq2} ppm`;
+      
+      // Update pollutant details
+      if (mq135 !== '--') {
+        document.getElementById('mq135-pollutants').innerText = `NH₃, CO₂, NOx, C₆H₆, Smoke, Alcohol`;
+      }
+      if (mq2 !== '--') {
+        document.getElementById('mq2-pollutants').innerText = `Smoke, Alcohol, LPG, CH₄, Benzene`;
+      }
+      
+      // Update pollution pill based on MQ135
+      if (mq135 !== '--' && mq135 > 400) {
+        document.getElementById('pollution-pill').innerText = 'High pollution';
+        document.getElementById('pollution-pill').className = 'pill danger';
+      } else if (mq135 !== '--' && mq135 > 200) {
+        document.getElementById('pollution-pill').innerText = 'Moderate';
+        document.getElementById('pollution-pill').className = 'pill warn';
+      } else {
+        document.getElementById('pollution-pill').innerText = 'Normal';
+        document.getElementById('pollution-pill').className = 'pill success';
+      }
+      
+      // Temperature (DS18B20)
+      document.getElementById('temp').innerText = `${data.temperature_c ?? '--'} °C`;
+      
+      // TDS Sensor (Water Health)
+      const tds = data.tds_ppm ?? data.tds ?? '--';
+      document.getElementById('tds-value').innerText = `${tds} ppm`;
+      
+      // Water Health Analysis based on TDS
+      if (tds !== '--') {
+        let status = '';
+        let detail = '';
+        let pillClass = 'pill';
+        let zone = '';
+        
+        if (tds < 50) {
+          status = 'Excellent';
+          detail = 'Very clean water, likely plastic accumulation zone';
+          pillClass = 'pill success';
+          zone = 'Plastic Zone (Low TDS)';
+          document.getElementById('plastic-zone').innerText = 'Detected';
+        } else if (tds < 200) {
+          status = 'Good';
+          detail = 'Acceptable water quality';
+          pillClass = 'pill success';
+          zone = 'Normal Zone';
+        } else if (tds < 500) {
+          status = 'Fair';
+          detail = 'Moderate dissolved solids';
+          pillClass = 'pill warn';
+          zone = 'Moderate Pollution';
+        } else if (tds < 1000) {
+          status = 'Poor';
+          detail = 'High TDS - Possible sewage/industrial discharge';
+          pillClass = 'pill danger';
+          zone = 'Chemical Pollution Zone (High TDS)';
+          document.getElementById('sewage-risk').innerText = 'High Risk';
+          document.getElementById('chemical-zone').innerText = 'Detected';
+        } else {
+          status = 'Critical';
+          detail = 'Very high TDS - Severe pollution, algal bloom risk';
+          pillClass = 'pill danger';
+          zone = 'Critical Pollution Zone';
+          document.getElementById('sewage-risk').innerText = 'Critical';
+          document.getElementById('algal-risk').innerText = 'High Risk';
+          document.getElementById('chemical-zone').innerText = 'Critical';
+        }
+        
+        document.getElementById('tds-status').innerText = status;
+        document.getElementById('tds-pill').innerText = status;
+        document.getElementById('tds-pill').className = pillClass;
+        document.getElementById('water-health-status').innerText = status;
+        document.getElementById('water-health-detail').innerText = detail;
+        document.getElementById('pollution-zone').innerText = zone;
+        
+        // Algal bloom risk (high TDS + high temp)
+        if (tds > 500 && (data.temperature_c || 0) > 25) {
+          document.getElementById('algal-risk').innerText = 'High Risk';
+        } else if (tds > 300 && (data.temperature_c || 0) > 22) {
+          document.getElementById('algal-risk').innerText = 'Moderate';
+        } else {
+          document.getElementById('algal-risk').innerText = 'Low';
+        }
+      } else {
+        document.getElementById('tds-status').innerText = 'No data';
+        document.getElementById('tds-pill').innerText = '--';
+        document.getElementById('water-health-status').innerText = '--';
+        document.getElementById('water-health-detail').innerText = 'TDS sensor data unavailable';
+      }
+      
+      // Moisture Sensors (Capacitive)
+      document.getElementById('moisture-dry').innerText = `${data.moisture?.dry_bin ?? '--'}%`;
+      document.getElementById('moisture-wet').innerText = `${data.moisture?.wet_bin ?? '--'}%`;
+      
+      // Load Cell (HX711)
+      document.getElementById('weight').innerText = `${data.loadcell_grams ?? '--'} g`;
       document.getElementById('bin-pill').innerText = (data.loadcell_grams || 0) > 4500 ? 'Bin full' : 'Capacity ok';
+      document.getElementById('bin-pill').className = 'pill ' + ((data.loadcell_grams || 0) > 4500 ? 'danger' : 'success');
+      
+      // Conveyor Belts (L298N) - ESP8266
+      document.getElementById('conveyors').innerText = `Wet: ${data.conveyor?.wet_active ? 'ON' : 'OFF'} | Dry: ${data.conveyor?.dry_active ? 'ON' : 'OFF'}`;
+      
+      // Propeller Motors (L298N) - ESP8266
+      const propStatus = data.propeller?.active ? 'Active' : 'Idle';
+      document.getElementById('propellers').innerText = `Status: ${propStatus}`;
+      
+      // Mode & ESP32-CAM Status
+      document.getElementById('mode').innerText = data.mode?.autonomous ? 'Autonomous' : 'Manual';
+      const camStatus = data.waste?.type ? 'Processing Images' : 'Idle';
+      document.getElementById('image-status').innerText = `ESP32-CAM: ${camStatus} (Image Processing Only)`;
+      
+      document.getElementById('last-update').innerText = `Last update: ${new Date().toLocaleTimeString()}`;
+      
+      // Hazardous waste detection (from ESP32-CAM)
       if (data.waste?.type && String(data.waste.type).toLowerCase().includes('hazard')) {
         document.getElementById('latest-hazard').innerText = `Hazardous: ${data.waste.type} (${(data.waste.confidence || 0).toFixed(2)})`;
         document.getElementById('hazard-flag').innerText = 'Hazard detected';
-        document.getElementById('hazard-flag').classList.add('danger');
+        document.getElementById('hazard-flag').className = 'pill danger';
+        document.getElementById('image-processing-status').innerText = 'Image processing: Hazard detected!';
+      } else if (data.waste?.type) {
+        document.getElementById('latest-hazard').innerText = `${data.waste.type} (${(data.waste.confidence || 0).toFixed(2)})`;
+        document.getElementById('image-processing-status').innerText = 'Image processing: Active';
+      } else {
+        document.getElementById('latest-hazard').innerText = 'No detection';
+        document.getElementById('image-processing-status').innerText = 'Image processing: Waiting...';
+      }
+      
+      // Obstacle detection
+      if ((data.ultrasonic_cm || 999) < 25) {
+        document.getElementById('obstacle-pill').innerText = 'Obstacle detected!';
+        document.getElementById('obstacle-pill').className = 'pill danger';
+      } else {
+        document.getElementById('obstacle-pill').innerText = 'Clear';
+        document.getElementById('obstacle-pill').className = 'pill success';
       }
     }
 
