@@ -260,6 +260,50 @@
           </div>
 
           <div class="card">
+            <h3>🎛️ Dual Conveyor Belt Control</h3>
+            <div class="conveyor-status-header">
+              <span id="conveyor-connection-status" class="status-badge disconnected">Disconnected</span>
+              <button class="btn-connect" id="connect-conveyor-btn">Connect to ESP8266</button>
+            </div>
+            
+            <div class="conveyor-controls">
+              <!-- Motor 1 Controls -->
+              <div class="motor-group">
+                <h4>Motor 1 (Wet Waste)</h4>
+                <div class="motor-buttons">
+                  <button class="btn-motor forward" data-cmd="1F">⬆ Forward</button>
+                  <button class="btn-motor stop" data-cmd="1S">⏹ Stop</button>
+                  <button class="btn-motor backward" data-cmd="1B">⬇ Backward</button>
+                </div>
+              </div>
+              
+              <!-- Motor 2 Controls -->
+              <div class="motor-group">
+                <h4>Motor 2 (Dry Waste)</h4>
+                <div class="motor-buttons">
+                  <button class="btn-motor forward" data-cmd="2F">⬆ Forward</button>
+                  <button class="btn-motor stop" data-cmd="2S">⏹ Stop</button>
+                  <button class="btn-motor backward" data-cmd="2B">⬇ Backward</button>
+                </div>
+              </div>
+              
+              <!-- Both Motors Controls -->
+              <div class="motor-group">
+                <h4>Both Motors</h4>
+                <div class="motor-buttons">
+                  <button class="btn-motor forward" data-cmd="AF">⬆⬆ All Forward</button>
+                  <button class="btn-motor stop" data-cmd="AS">⏹⏹ All Stop</button>
+                </div>
+              </div>
+            </div>
+            
+            <div class="conveyor-info">
+              <small>ESP8266 IP: <span id="esp-ip">192.168.4.1</span></small>
+              <small>Last Command: <span id="last-cmd">None</span></small>
+            </div>
+          </div>
+
+          <div class="card">
             <h3>Quick Actions</h3>
             <div class="quick-actions">
               <button class="btn-quick purple">🏠 Return To Home</button>

@@ -1,0 +1,307 @@
+===============================================
+   SIH 2025 PROJECT SUBMISSION GUIDE
+   Waste Segregator - Smart Waste Management
+===============================================
+
+IMPORTANT: Follow these steps carefully to prepare your project for submission.
+
+===============================================
+STEP 1: COMPLETE TEAM INFORMATION
+===============================================
+
+✓ Open team_info.txt and fill in ALL the required fields:
+  - Team Name
+  - Institute Name
+  - All Team Members (names and roles)
+  - Contact Information
+  - GitHub Repository URL (if applicable)
+  - Problem Statement ID
+
+✓ Save the file after filling all information
+
+===============================================
+STEP 2: VERIFY PROJECT STRUCTURE
+===============================================
+
+Your project should have this structure:
+
+Waste Segregator/
+├── backend/
+│   ├── ai/                    # AI/ML modules
+│   ├── config/               # Configuration files
+│   ├── controllers/          # API controllers
+│   ├── data/                 # Telemetry data
+│   ├── ESP8266/              # ESP8266 firmware
+│   ├── ESP32/                # ESP32 firmware
+│   ├── models/               # Database models
+│   ├── routes/               # API routes
+│   ├── utils/                # Utilities
+│   ├── server.js             # Main server
+│   ├── package.json          # Node dependencies
+│   ├── ARDUINO_SETUP.md      # Arduino guide
+│   └── INSTALL_MOSQUITTO.md  # MQTT guide
+├── frontend/
+│   ├── index.html            # Dashboard
+│   ├── app.js                # Frontend logic
+│   └── app.css               # Styles
+├── README.md                 # Project documentation ✓
+├── team_info.txt             # Team information ✓
+├── LICENSE                   # License file
+└── yolov8n.pt               # AI model
+
+===============================================
+STEP 3: TEST YOUR PROJECT
+===============================================
+
+Before creating ZIP, ensure everything works:
+
+1. Test Python/AI System:
+   ```
+   python -m venv venv
+   .\venv\Scripts\Activate.ps1
+   pip install -r backend/ai/docker/requirements.txt
+   python backend/ai/api/main.py
+   ```
+   ✓ Server should start on http://127.0.0.1:8000
+
+2. Test Webcam Demo (optional):
+   ```
+   python backend/ai/yolo/post_webcam_demo.py
+   ```
+   ✓ Should capture and process images
+
+3. Test Backend (if Node.js installed):
+   ```
+   cd backend
+   npm install
+   node server.js
+   ```
+   ✓ Server should start on http://localhost:3000
+
+4. Test Frontend:
+   - Open frontend/index.html in browser
+   ✓ Dashboard should load
+
+===============================================
+STEP 4: CLEAN UP UNNECESSARY FILES
+===============================================
+
+Remove these files/folders before creating ZIP:
+
+✗ venv/ or venv_* (Python virtual environment)
+✗ node_modules/ (Node.js dependencies)
+✗ __pycache__/ folders (Python cache)
+✗ *.pyc files (Python compiled)
+✗ .env files (environment variables with secrets)
+✗ Large data files (keep only samples)
+✗ .git/ folder (if present)
+
+Keep these important files:
+✓ requirements.txt (backend/ai/docker/requirements.txt)
+✓ package.json (backend/package.json)
+✓ All source code (.py, .js, .html, .css, .ino)
+✓ Configuration files (.yaml, .json)
+✓ Model files (yolov8n.pt)
+✓ Documentation (.md, .txt)
+
+===============================================
+STEP 5: CREATE THE ZIP FILE
+===============================================
+
+METHOD 1: Using Windows File Explorer
+--------------------------------------
+1. Navigate to: c:\Users\RATUL\Desktop\
+2. Right-click on "Waste Segregator" folder
+3. Select "Send to" → "Compressed (zipped) folder"
+4. Rename the ZIP file to: [TEAM_NAME]_SIH2025.zip
+   Example: WasteWizards_SIH2025.zip
+
+METHOD 2: Using PowerShell
+---------------------------
+Open PowerShell and run:
+
+```powershell
+cd "c:\Users\RATUL\Desktop"
+Compress-Archive -Path "Waste Segregator" -DestinationPath "[TEAM_NAME]_SIH2025.zip"
+```
+
+Replace [TEAM_NAME] with your actual team name.
+
+METHOD 3: Using 7-Zip or WinRAR
+--------------------------------
+1. Right-click on "Waste Segregator" folder
+2. Select "Add to archive"
+3. Choose ZIP format
+4. Name it: [TEAM_NAME]_SIH2025.zip
+
+===============================================
+STEP 6: VERIFY THE ZIP FILE
+===============================================
+
+CRITICAL: Test the ZIP file before submission!
+
+1. Extract ZIP to a NEW location:
+   - Right-click ZIP → "Extract All"
+   - Choose a different folder (e.g., Desktop\Test\)
+
+2. Verify folder structure:
+   ✓ All folders are present
+   ✓ README.md exists and is readable
+   ✓ team_info.txt exists and is filled
+   ✓ Source code files are present
+   ✓ No unnecessary files (venv, node_modules)
+
+3. Test the extracted project:
+   - Follow README.md installation steps
+   - Run the AI server
+   - Verify it works on a fresh setup
+
+4. Check ZIP file size:
+   - Should be reasonable (typically 50-500 MB)
+   - If too large, check for unnecessary files
+
+===============================================
+STEP 7: FINAL CHECKLIST
+===============================================
+
+Before submission, confirm:
+
+☐ README.md is complete with:
+   ☐ Problem statement & solution
+   ☐ Features list
+   ☐ Technologies used
+   ☐ Installation steps
+   ☐ Running instructions
+   ☐ Troubleshooting guide
+
+☐ team_info.txt is complete with:
+   ☐ Team name
+   ☐ Institute name
+   ☐ All team members with roles
+   ☐ Contact information
+   ☐ GitHub repository (if any)
+
+☐ Project files:
+   ☐ All source code included
+   ☐ Model files (yolov8n.pt) included
+   ☐ Requirements.txt and package.json included
+   ☐ Documentation files included
+   ☐ No large unnecessary files
+
+☐ ZIP file:
+   ☐ Named correctly: [TEAM_NAME]_SIH2025.zip
+   ☐ Tested on another system
+   ☐ Opens without errors
+   ☐ Reasonable file size
+
+☐ Testing:
+   ☐ Project runs on a fresh installation
+   ☐ Dependencies can be installed
+   ☐ No hardcoded paths or credentials
+   ☐ All features work as documented
+
+===============================================
+COMMON MISTAKES TO AVOID
+===============================================
+
+❌ Forgetting to fill team_info.txt
+❌ Including venv/ or node_modules/ in ZIP
+❌ Missing requirements.txt or package.json
+❌ Hardcoded file paths (e.g., C:\Users\RATUL\...)
+❌ Including sensitive data (.env files with passwords)
+❌ Not testing ZIP on a fresh system
+❌ Incorrect ZIP file naming
+❌ Missing documentation
+❌ Broken file paths in code
+❌ Missing model files
+
+===============================================
+TROUBLESHOOTING
+===============================================
+
+Problem: ZIP file is too large (>1 GB)
+Solution: Check for and remove:
+  - venv/ folder
+  - node_modules/ folder
+  - Large dataset files
+  - Multiple model versions
+  - Log files
+
+Problem: Project doesn't run after extraction
+Solution: 
+  - Verify requirements.txt is included
+  - Check for hardcoded paths
+  - Ensure model files are present
+  - Test following your own README.md
+
+Problem: Missing files in ZIP
+Solution:
+  - Don't select files individually
+  - Compress the entire folder
+  - Verify before finalizing
+
+===============================================
+SUBMISSION INFORMATION
+===============================================
+
+File Name Format: [TEAM_NAME]_SIH2025.zip
+Example: WasteWizards_SIH2025.zip
+
+Expected Size: 50 MB - 500 MB
+(Depends on model files and assets)
+
+What to Submit:
+1. The ZIP file named correctly
+2. Any additional documents as per SIH portal requirements
+
+Submission Deadline: [Check SIH Portal]
+Portal: [SIH Official Submission Portal]
+
+===============================================
+DEMO PREPARATION TIPS
+===============================================
+
+For the presentation/demo:
+
+1. Prepare a backup:
+   - Keep ZIP file on USB drive
+   - Keep on cloud storage (Google Drive/Dropbox)
+   - Keep on laptop
+
+2. Test on presentation system:
+   - Verify WiFi connectivity
+   - Test display output
+   - Check power supply
+
+3. Have ready:
+   - Project running on laptop
+   - Sample data to demonstrate
+   - Hardware components (if applicable)
+   - Presentation slides (if any)
+
+4. Practice demo flow:
+   - Show dashboard
+   - Demonstrate AI detection
+   - Show analytics/reports
+   - Explain hardware integration
+
+===============================================
+SUPPORT & CONTACT
+===============================================
+
+For questions about project structure or submission:
+- Contact: Team Lead (see team_info.txt)
+
+For SIH-specific submission queries:
+- Visit: SIH Official Portal
+- Email: SIH Support
+
+===============================================
+
+GOOD LUCK WITH YOUR SUBMISSION! 🎉
+
+Remember: Quality > Quantity
+A well-documented, working project is better than
+a feature-rich but broken submission.
+
+===============================================

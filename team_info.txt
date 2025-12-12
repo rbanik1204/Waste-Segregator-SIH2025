@@ -1,0 +1,92 @@
+===============================================
+   SMART INDIA HACKATHON 2025
+   TEAM INFORMATION
+===============================================
+
+Team Name: [YOUR_TEAM_NAME]
+Example: WasteWizards / EcoTech / SmartSegregate
+
+Institute: [YOUR_INSTITUTE_NAME]
+Example: Indian Institute of Technology, Delhi
+         National Institute of Technology, Trichy
+
+===============================================
+TEAM MEMBERS:
+===============================================
+
+1. [Member Name 1] - Team Lead & Backend Developer
+   Role: Project coordination, Node.js server, MQTT integration
+
+2. [Member Name 2] - AI/ML Developer
+   Role: YOLOv8 implementation, CNN model training, computer vision
+
+3. [Member Name 3] - Hardware & IoT Specialist
+   Role: ESP8266/ESP32 programming, sensor integration, circuit design
+
+4. [Member Name 4] - Frontend Developer
+   Role: Dashboard UI/UX, data visualization, WebSocket integration
+
+5. [Member Name 5] - Database & Analytics
+   Role: MongoDB management, data analytics, report generation
+
+6. [Member Name 6] - Testing & Documentation
+   Role: System testing, documentation, deployment
+
+===============================================
+CONTACT INFORMATION:
+===============================================
+
+Primary Contact (Team Lead):
+Email: [team_lead_email@example.com]
+Phone: [+91-XXXXXXXXXX]
+
+Alternate Contact:
+Email: [alternate_email@example.com]
+Phone: [+91-XXXXXXXXXX]
+
+===============================================
+PROJECT REPOSITORY:
+===============================================
+
+GitHub Repository: [YOUR_GITHUB_REPO_URL]
+Example: https://github.com/your-team/waste-segregator-sih2025
+
+(If repository is private, provide access credentials separately)
+
+===============================================
+PROBLEM STATEMENT:
+===============================================
+
+Problem Statement ID: [PS_ID]
+Problem Statement Title: Smart Waste Segregation and Management System
+
+Category: Smart Automation / Environment / IoT
+
+===============================================
+ADDITIONAL INFORMATION:
+===============================================
+
+Project Development Duration: [X months]
+Technologies Mastered: IoT, AI/ML, Computer Vision, Web Development
+Key Achievements: Real-time waste detection, Automated segregation, Analytics dashboard
+
+Special Requirements for Demo:
+- WiFi/Internet connectivity
+- Power supply for hardware components
+- Projector/Display for dashboard presentation
+
+===============================================
+SUBMISSION DETAILS:
+===============================================
+
+Submission Date: December 12, 2025
+ZIP File Name: [TEAM_NAME]_SIH2025.zip
+Total Project Size: [Approximate size in MB]
+
+===============================================
+
+NOTE: Please fill in all the bracketed [ ] fields with your actual team information before submission.
+
+For any queries regarding this project, please contact the team lead at the email/phone provided above.
+
+===============================================

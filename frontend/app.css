@@ -1707,6 +1707,148 @@ section.active {
   margin-bottom: 8px;
 }
 
+/* Conveyor Belt Controls */
+.conveyor-status-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+  padding-bottom: 12px;
+  border-bottom: 2px solid var(--border);
+}
+
+.status-badge {
+  padding: 6px 12px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+.status-badge.connected {
+  background: var(--light-green);
+  color: var(--green);
+}
+
+.status-badge.disconnected {
+  background: #fee2e2;
+  color: var(--red);
+}
+
+.btn-connect {
+  padding: 8px 16px;
+  background: var(--primary-blue);
+  color: white;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 500;
+  transition: all 0.2s;
+}
+
+.btn-connect:hover {
+  background: #1557d6;
+  transform: translateY(-1px);
+}
+
+.conveyor-controls {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.motor-group {
+  background: var(--bg);
+  padding: 16px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+}
+
+.motor-group h4 {
+  margin-bottom: 12px;
+  color: var(--secondary-blue);
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.motor-buttons {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+}
+
+.motor-buttons.full {
+  grid-template-columns: repeat(2, 1fr);
+}
+
+.btn-motor {
+  padding: 12px;
+  border: 2px solid var(--border);
+  background: white;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 500;
+  transition: all 0.2s;
+  color: var(--text);
+}
+
+.btn-motor:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+}
+
+.btn-motor:active {
+  transform: translateY(0);
+}
+
+.btn-motor.forward {
+  border-color: var(--green);
+  color: var(--green);
+}
+
+.btn-motor.forward:hover {
+  background: var(--light-green);
+}
+
+.btn-motor.stop {
+  border-color: var(--red);
+  color: var(--red);
+}
+
+.btn-motor.stop:hover {
+  background: #fee2e2;
+}
+
+.btn-motor.backward {
+  border-color: var(--orange);
+  color: var(--orange);
+}
+
+.btn-motor.backward:hover {
+  background: #fef3c7;
+}
+
+.conveyor-info {
+  margin-top: 16px;
+  padding-top: 16px;
+  border-top: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.conveyor-info small {
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.conveyor-info span {
+  font-weight: 600;
+  color: var(--text);
+}
+
 /* Responsive */
 @media (max-width: 768px) {
   header {
@@ -1729,4 +1871,5 @@ section.active {
   .waste-gauges {
     grid-template-columns: 1fr;
   }
-}
+  
+  .motor-buttons {

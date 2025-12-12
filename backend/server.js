@@ -12,6 +12,7 @@ const telemetryRoutes = require('./routes/telemetryRoutes');
 const controlRoutes = require('./routes/controlRoutes');
 const reportRoutes = require('./routes/reportRoutes');
 const apiRoutes = require('./routes/apiRoutes');
+const gasSensorRoutes = require('./routes/gasSensorRoutes');
 
 const app = express();
 app.use(cors());
@@ -26,6 +27,7 @@ connectDB().catch((err) => {
 app.use('/api/telemetry', telemetryRoutes);
 app.use('/api/control', controlRoutes);
 app.use('/api/reports', reportRoutes);
+app.use('/api/gas-sensors', gasSensorRoutes);
 app.use('/api', apiRoutes);
 
 // static serve (optional) so frontend can be hosted from backend during dev

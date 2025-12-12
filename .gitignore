@@ -1,1 +1,94 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+pip-wheel-metadata/
+share/python-wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# Virtual Environment
+venv/
+venv_*/
+ENV/
+env/
+.venv
+
+# Node.js
 node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+package-lock.json
+.npm
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Environment variables
+.env
+.env.local
+.env.*.local
+
+# Logs
+*.log
+logs/
+
+# Database
+*.sqlite
+*.db
+
+# Temporary files
+*.tmp
+*.temp
+*.bak
+*.backup
+telemetry.bak.*
+*.csv.bak*
+
+# OS
+Thumbs.db
+Desktop.ini
+
+# AI/ML
+*.h5
+*.pkl
+*.pth
+runs/
+wandb/
+
+# Data (keep structure, ignore large files)
+backend/data/*.jpg
+backend/data/*.png
+backend/data/*.jpeg
+backend/data/*.mp4
+backend/data/*.avi
+
+# Reports
+backend/data/*.pdf
+backend/data/*.html
+
+# Keep important files
+!yolov8n.pt
+!backend/ai/yolo/yolov8n.pt

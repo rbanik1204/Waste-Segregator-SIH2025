@@ -42,6 +42,7 @@ function setActiveSection(target) {
   } else if (target === 'live') {
     initLiveMaps();
     startCamera(); // ensure camera is running when live control is active
+    initConveyorControls(); // Initialize conveyor controls when Live Control is opened
   } else if (target === 'heatmap') {
     initHeatmap();
   } else if (target === 'predictions') {
@@ -1003,6 +1004,7 @@ async function bootstrap() {
   initYoloStream();
   await loadRecords();
   initWebSocket();
+  // Conveyor controls will be initialized when Live Control section is activated
   
   // Initial data load
   try {
@@ -1016,9 +1018,234 @@ async function bootstrap() {
   
   // Set initial gauge values
   updateGauges(68, 32);
+  
+  // Start gas sensor data polling
+  startGasSensorPolling();
 }
 
-// Initialize on DOM ready
+// ===== GAS SENSOR DATA POLLING =====
+let gasSensorInterval = null;
+
+function startGasSensorPolling() {
+  // Initial fetch
+  fetchGasSensorData();
+  
+  // Poll every 5 seconds
+  gasSensorInterval = setInterval(fetchGasSensorData, 5000);
+}
+
+async function fetchGasSensorData() {
+  try {
+    const response = await fetchJson('/api/gas-sensors/latest');
+    if (response.success && response.data) {
+      updateGasSensorDisplay(response.data);
+    }
+  } catch (error) {
+    console.error('Gas sensor data fetch error:', error);
+  }
+}
+
+function updateGasSensorDisplay(data) {
+  const { mq135, mq2 } = data;
+  
+  // Update MQ135 (Air Quality) display
+  const aqiValueEl = document.getElementById('env-aqi');
+  const aqiStatusEl = document.querySelector('.metric-status');
+  
+  if (aqiValueEl && mq135) {
+    aqiValueEl.textContent = mq135.hasError ? 'Error' : `${Math.round(mq135.ppm)} PPM`;
+    
+    if (aqiStatusEl && !mq135.hasError) {
+      // Update status based on level
+      aqiStatusEl.className = 'metric-status';
+      switch(mq135.level) {
+        case 'good':
+          aqiStatusEl.classList.add('green');
+          aqiStatusEl.textContent = 'Good';
+          break;
+        case 'elevated':
+          aqiStatusEl.classList.add('yellow');
+          aqiStatusEl.textContent = 'Elevated';
+          break;
+        case 'high':
+          aqiStatusEl.classList.add('orange');
+          aqiStatusEl.textContent = 'High';
+          break;
+        case 'very_high':
+          aqiStatusEl.classList.add('red');
+          aqiStatusEl.textContent = 'Very High';
+          break;
+        case 'dangerous':
+          aqiStatusEl.classList.add('red');
+          aqiStatusEl.textContent = 'Dangerous!';
+          break;
+        default:
+          aqiStatusEl.classList.add('orange');
+          aqiStatusEl.textContent = 'Moderate';
+      }
+    }
+  }
+  
+  // Log MQ2 data (flammable gas) to console
+  if (mq2 && !mq2.hasError) {
+    console.log(`[MQ2 Flammable Gas] ${mq2.ppm}ppm - ${mq2.level} - ${mq2.gas}`);
+    
+    // Alert if dangerous gas levels detected
+    if (mq2.level === 'high' || mq2.level === 'extreme') {
+      console.warn('⚠️ DANGER: High flammable gas detected!');
+    }
+  }
+}
+
+// ===== CONVEYOR BELT CONTROLS =====
+const ESP8266_IP = '192.168.4.1';
+const ESP8266_PORT = '80';
+let conveyorConnected = false;
+
+function initConveyorControls() {
+  console.log('=== INIT CONVEYOR CONTROLS START ===');
+  const connectBtn = document.getElementById('connect-conveyor-btn');
+  const motorButtons = document.querySelectorAll('.btn-motor');
+  
+  console.log('Connect button:', connectBtn);
+  console.log('Motor buttons found:', motorButtons.length);
+  motorButtons.forEach(btn => {
+    console.log('  Button:', btn.dataset.cmd, btn.textContent.trim());
+  });
+  
+  if (!connectBtn) {
+    console.error('ERROR: Connect button not found!');
+    return;
+  }
+  
+  if (motorButtons.length === 0) {
+    console.error('ERROR: No motor buttons found!');
+    return;
+  }
+  
+  connectBtn.addEventListener('click', (e) => {
+    console.log('Connect button clicked!');
+    testConveyorConnection();
+  });
+  
+  motorButtons.forEach(btn => {
+    btn.addEventListener('click', async (e) => {
+      console.log('Motor button clicked!', e.target);
+      const cmd = e.target.dataset.cmd || e.target.closest('.btn-motor')?.dataset.cmd;
+      console.log('Command extracted:', cmd);
+      if (cmd) {
+        await sendConveyorCommand(cmd);
+      } else {
+        console.error('No command found for button', e.target);
+      }
+    });
+  });
+  
+  console.log('=== INIT CONVEYOR CONTROLS COMPLETE ===');
+  // Auto-connect on page load (if on same WiFi network)
+  setTimeout(() => {
+    console.log('Auto-connecting to ESP8266...');
+    testConveyorConnection();
+  }, 1000);
+}
+
+async function testConveyorConnection() {
+  const statusBadge = document.getElementById('conveyor-connection-status');
+  const connectBtn = document.getElementById('connect-conveyor-btn');
+  
+  updateConveyorStatus('testing', 'Testing...');
+  connectBtn.disabled = true;
+  connectBtn.textContent = 'Testing...';
+  
+  try {
+    const response = await fetch(`http://${ESP8266_IP}:${ESP8266_PORT}/`, {
+      method: 'GET',
+      mode: 'no-cors', // ESP8266 doesn't support CORS
+      cache: 'no-cache',
+      signal: AbortSignal.timeout(3000) // 3 second timeout
+    });
+    
+    conveyorConnected = true;
+    updateConveyorStatus('connected', 'Connected');
+    connectBtn.textContent = '✓ Connected';
+    connectBtn.disabled = false;
+    console.log('ESP8266 conveyor control connected');
+  } catch (error) {
+    conveyorConnected = false;
+    updateConveyorStatus('disconnected', 'Disconnected');
+    connectBtn.textContent = 'Retry Connection';
+    connectBtn.disabled = false;
+    console.error('ESP8266 connection failed:', error);
+    
+    alert(`Cannot connect to ESP8266 at ${ESP8266_IP}:${ESP8266_PORT}\n\n` +
+          `Please ensure:\n` +
+          `1. You are connected to "ConveyorControl" WiFi network\n` +
+          `2. ESP8266 is powered on and running\n` +
+          `3. IP address is correct (currently: ${ESP8266_IP})`);
+  }
+}
+
+async function sendConveyorCommand(cmd) {
+  if (!cmd) {
+    console.error('sendConveyorCommand called with no command!');
+    return;
+  }
+  
+  console.log(`>>> SENDING COMMAND: ${cmd} <<<`);
+  
+  const lastCmdSpan = document.getElementById('last-cmd');
+  if (lastCmdSpan) {
+    lastCmdSpan.textContent = cmd;
+    console.log('Updated last-cmd display to:', cmd);
+  }
+  
+  console.log(`Sending conveyor command to: http://${ESP8266_IP}:${ESP8266_PORT}/${cmd}`);
+  
+  try {
+    // Create iframe to send command (workaround for CORS)
+    const iframe = document.createElement('iframe');
+    iframe.style.display = 'none';
+    iframe.src = `http://${ESP8266_IP}:${ESP8266_PORT}/${cmd}`;
+    document.body.appendChild(iframe);
+    console.log('Iframe created and appended to body');
+    
+    // Remove iframe after 2 seconds
+    setTimeout(() => {
+      document.body.removeChild(iframe);
+      console.log('Iframe removed');
+    }, 2000);
+    
+    // Visual feedback
+    const btn = document.querySelector(`[data-cmd="${cmd}"]`);
+    if (btn) {
+      btn.style.transform = 'scale(0.95)';
+      setTimeout(() => {
+        btn.style.transform = '';
+      }, 200);
+      console.log('Button visual feedback applied');
+    }
+    
+    console.log(`✓ Command ${cmd} sent successfully`);
+  } catch (error) {
+    console.error('ERROR sending conveyor command:', error);
+    alert(`Failed to send command: ${error.message}`);
+  }
+}
+
+function updateConveyorStatus(state, text) {
+  const statusBadge = document.getElementById('conveyor-connection-status');
+  if (!statusBadge) return;
+  
+  statusBadge.className = 'status-badge';
+  if (state === 'connected') {
+    statusBadge.classList.add('connected');
+  } else if (state === 'disconnected') {
+    statusBadge.classList.add('disconnected');
+  }
+  statusBadge.textContent = text;
+}
+
+// Initialize the application when DOM is ready
 if (document.readyState === 'loading') {
   document.addEventListener('DOMContentLoaded', bootstrap);
 } else {
