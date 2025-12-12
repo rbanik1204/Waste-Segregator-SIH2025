@@ -3,33 +3,28 @@
    TEAM INFORMATION
 ===============================================
 
-Team Name: [YOUR_TEAM_NAME]
-Example: WasteWizards / EcoTech / SmartSegregate
+Team Name: PavitraX
 
-Institute: [YOUR_INSTITUTE_NAME]
-Example: Indian Institute of Technology, Delhi
-         National Institute of Technology, Trichy
+Institute: Hooghly Engineering & Technology College
 
 ===============================================
 TEAM MEMBERS:
 ===============================================
 
-1. [Member Name 1] - Team Lead & Backend Developer
+1. Ratul Banik - Team Lead & Backend Developer
    Role: Project coordination, Node.js server, MQTT integration
-
-2. [Member Name 2] - AI/ML Developer
+         ESP8266/ESP32 programming, sensor integration, circuit design
+2. Santam Sarkar - AI/ML Developer
    Role: YOLOv8 implementation, CNN model training, computer vision
 
-3. [Member Name 3] - Hardware & IoT Specialist
-   Role: ESP8266/ESP32 programming, sensor integration, circuit design
+3. Arghyadip Sett - Frontend design & Outer structure
 
-4. [Member Name 4] - Frontend Developer
-   Role: Dashboard UI/UX, data visualization, WebSocket integration
+4. Pikai Mondal- Main Structure Designer of Boat
 
-5. [Member Name 5] - Database & Analytics
+5. Ahana Bagchi - UI/UX Dashboard + PPT contributor
    Role: MongoDB management, data analytics, report generation
 
-6. [Member Name 6] - Testing & Documentation
+6. Param Bhattacharjee - Testing & Documentation
    Role: System testing, documentation, deployment
 
 ===============================================
@@ -37,36 +32,59 @@ CONTACT INFORMATION:
 ===============================================
 
 Primary Contact (Team Lead):
-Email: [team_lead_email@example.com]
-Phone: [+91-XXXXXXXXXX]
+Email: [rb1204@gmail.com]
+Phone: [+91-8910048761]
 
 Alternate Contact:
-Email: [alternate_email@example.com]
-Phone: [+91-XXXXXXXXXX]
+Email: [ratulbanik2004@gmail.com]
+Phone: [+91-7278089317]
 
 ===============================================
 PROJECT REPOSITORY:
 ===============================================
 
-GitHub Repository: [YOUR_GITHUB_REPO_URL]
-Example: https://github.com/your-team/waste-segregator-sih2025
+GitHub Repository: https://github.com/rbanik1204/Waste-Segregator-SIH2025
 
-(If repository is private, provide access credentials separately)
+(Repository is public and accessible to all evaluators)
 
 ===============================================
 PROBLEM STATEMENT:
 ===============================================
 
-Problem Statement ID: [PS_ID]
-Problem Statement Title: Smart Waste Segregation and Management System
+Problem Statement ID: 25014
+Problem Statement Title: Waste Segregation Monitoring System for Urban Local Bodies
 
-Category: Smart Automation / Environment / IoT
+Category: Hardware
 
+Problem Description:
+Urban local bodies struggle with improper waste segregation at the household level, 
+leading to inefficiencies in waste processing and increased landfill burden. Despite 
+awareness campaigns, compliance remains low due to lack of monitoring and feedback 
+mechanisms. This issue is widespread in urban areas with high waste generation.
+
+Impact:
+Improper segregation affects nearly 70% of urban waste management systems, increasing 
+recycling costs and environmental pollution. A solution would improve waste processing 
+efficiency and reduce landfill dependency.
+
+Expected Outcomes:
+• IoT-based system or mobile app to monitor segregation at collection points
+• Provide real-time feedback to households on compliance
+• Generate compliance reports for local authorities to enforce better waste management
+
+Relevant Stakeholders/Beneficiaries:
+• Urban local bodies
+• Residents
+• Waste management agencies
+• Environmental organizations
+
+Supporting Data:
+Swachh Bharat Mission Urban 2.0 Report, highlighting segregation challenges
 ===============================================
 ADDITIONAL INFORMATION:
 ===============================================
 
-Project Development Duration: [X months]
+Project Development Duration: 3 months
 Technologies Mastered: IoT, AI/ML, Computer Vision, Web Development
 Key Achievements: Real-time waste detection, Automated segregation, Analytics dashboard
 
@@ -80,12 +98,10 @@ SUBMISSION DETAILS:
 ===============================================
 
 Submission Date: December 12, 2025
-ZIP File Name: [TEAM_NAME]_SIH2025.zip
-Total Project Size: [Approximate size in MB]
+ZIP File Name: PavitraX_SIH2025.zip
+Total Project Size: ~150 MB (without venv/node_modules)
 
 ===============================================
-
-NOTE: Please fill in all the bracketed [ ] fields with your actual team information before submission.
 
 For any queries regarding this project, please contact the team lead at the email/phone provided above.
 
