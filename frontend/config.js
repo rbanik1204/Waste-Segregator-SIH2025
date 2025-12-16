@@ -2,7 +2,11 @@
 // This file allows easy configuration of backend and hardware endpoints
 
 // Determine if running on GitHub Pages or locally
-const isGitHubPages = window.location.hostname.includes('github.io');
+// Check if this is the actual GitHub Pages domain for this repository
+const isGitHubPages = (
+  window.location.hostname === 'rbanik1204.github.io' ||
+  window.location.hostname.endsWith('.github.io')
+);
 
 const CONFIG = {
   // Backend API Configuration
