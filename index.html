@@ -1,0 +1,774 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>PAVITRAX | Smart Waste Segregation Boat</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css"/>
+  <link rel="stylesheet" href="./app.css"/>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+  <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+  <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+  <script src="https://unpkg.com/leaflet.heat@0.2.0/dist/leaflet-heat.js"></script>
+</head>
+<body>
+  <!-- Header -->
+  <header>
+    <div class="brand">
+      <div class="logo-icon">⚡</div>
+      <div class="brand-text">
+        <div class="brand-name">PAVITRAX</div>
+        <div class="brand-subtitle">Smart Waste Segregation Boat</div>
+      </div>
+    </div>
+    <nav id="nav">
+      <button data-target="dashboard" class="active">
+        <span class="nav-icon">⊞</span> Dashboard
+      </button>
+      <button data-target="live">
+        <span class="nav-icon">🎮</span> Live Control
+      </button>
+      <button data-target="analytics">
+        <span class="nav-icon">📊</span> Analytics
+      </button>
+      <button data-target="predictions">
+        <span class="nav-icon">🧠</span> Predictions
+      </button>
+      <button data-target="reports">
+        <span class="nav-icon">📄</span> Reports
+      </button>
+      <button data-target="heatmap">
+        <span class="nav-icon">🗺️</span> Heatmap
+      </button>
+      <button data-target="about">
+        <span class="nav-icon">ℹ️</span> About Us
+      </button>
+    </nav>
+    <div class="header-status">
+      <div class="status-online">
+        <span class="status-dot"></span> Online
+      </div>
+      <div class="status-battery">
+        <span class="battery-icon">🔋</span> <span id="header-battery">87%</span>
+      </div>
+    </div>
+  </header>
+
+  <main>
+    <!-- Dashboard Section -->
+    <section id="dashboard" class="active">
+      <div class="page-header">
+        <div>
+          <h1>Dashboard</h1>
+          <p class="page-subtitle">Real-time monitoring and control</p>
+        </div>
+        <button class="btn-manual-override">
+          <span>⚙️</span> Manual Override
+        </button>
+      </div>
+
+      <!-- Status Widgets -->
+      <div class="status-widgets">
+        <div class="status-widget">
+          <div class="status-dot green"></div>
+          <span>Status Online</span>
+        </div>
+        <div class="status-widget">
+          <span class="widget-icon">✈️</span>
+          <span>Battery <span id="status-battery">87%</span></span>
+        </div>
+        <div class="status-widget">
+          <span class="widget-icon purple">📍</span>
+          <span>GPS Lock Acquired</span>
+        </div>
+        <div class="status-widget">
+          <span class="widget-icon orange">⚙️</span>
+          <span>Motors Active</span>
+        </div>
+      </div>
+
+      <!-- Main Content Row -->
+      <div class="dashboard-main-row">
+        <!-- Left: Live Camera Feed -->
+        <div class="card camera-card">
+          <div class="card-header">
+            <h3><span class="card-icon">📷</span> Live Camera Feed</h3>
+            <div class="streaming-indicator">
+              <span class="red-dot"></span> <span class="status-label">Streaming</span>
+            </div>
+            <div class="camera-controls">
+              <select id="camera-select" aria-label="Select camera"></select>
+              <button id="camera-refresh" class="mini-btn" title="Refresh cameras">🔄</button>
+              <button id="camera-restart" class="mini-btn" title="Restart camera">⏯</button>
+            </div>
+          </div>
+          <div class="camera-view">
+            <div class="camera-overlay">
+              <div class="overlay-info">
+                <div id="camera-gps">28.6129° N, 77.2295° E</div>
+                <div>Speed: <span id="camera-speed">2.3</span> km/h</div>
+              </div>
+            </div>
+            <img id="yolo-stream" class="yolo-stream" alt="YOLO stream" />
+            <video id="dashboard-video" data-camera-video autoplay playsinline muted></video>
+            <div class="camera-placeholder">Waiting for camera permission…</div>
+          </div>
+        </div>
+
+        <!-- Right: Waste Segregation -->
+        <div class="card waste-card">
+          <div class="card-header">
+            <h3><span class="card-icon">🗑️</span> Waste Segregation</h3>
+          </div>
+          <div class="waste-gauges">
+            <div class="gauge-container">
+              <div class="gauge-label">Dry Waste</div>
+              <div class="semi-gauge blue" id="dry-gauge">
+                <div class="gauge-value">68%</div>
+              </div>
+            </div>
+            <div class="gauge-container">
+              <div class="gauge-label">Wet Waste</div>
+              <div class="semi-gauge green" id="wet-gauge">
+                <div class="gauge-value">32%</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Boat Location and Environmental Monitoring -->
+      <div class="dashboard-second-row">
+        <!-- Left: Boat Location -->
+        <div class="card location-card">
+          <div class="card-header">
+            <h3><span class="card-icon purple">📍</span> Boat Location</h3>
+            <div class="location-coord">N <span id="location-lat">28.61°</span></div>
+          </div>
+          <div class="location-map" id="location-map"></div>
+          <div class="location-stats">
+            <div class="stat-item">
+              <div class="stat-label">Distance</div>
+              <div class="stat-value">2.4 km</div>
+            </div>
+            <div class="stat-item">
+              <div class="stat-label">Duration</div>
+              <div class="stat-value">1h 23m</div>
+            </div>
+            <div class="stat-item">
+              <div class="stat-label">Waypoints</div>
+              <div class="stat-value">5/8</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Right: Environmental Monitoring -->
+        <div class="card env-card">
+          <div class="card-header">
+            <h3><span class="card-icon">📊</span> Environmental Monitoring</h3>
+          </div>
+          <div class="env-metrics">
+            <div class="env-metric-card">
+              <div class="metric-header">
+                <span class="metric-icon blue">💧</span>
+                <span class="metric-label">TDS Level</span>
+              </div>
+              <div class="metric-value" id="env-tds">330 ppm</div>
+              <div class="metric-chart" id="tds-chart-mini"></div>
+            </div>
+            <div class="env-metric-card">
+              <div class="metric-header">
+                <span class="metric-icon orange">🌡️</span>
+                <span class="metric-label">Water Temperature</span>
+              </div>
+              <div class="metric-value" id="env-temp">28.7 °C</div>
+              <div class="metric-subtitle">DS18B20 Sensor</div>
+              <div class="metric-chart" id="temp-chart-mini"></div>
+            </div>
+            <div class="env-metric-card">
+              <div class="metric-header">
+                <span class="metric-icon green">🌬️</span>
+                <span class="metric-label">Air Quality (MQ-135)</span>
+              </div>
+              <div class="metric-value" id="env-aqi">149 PPM</div>
+              <div class="metric-status orange">Moderate</div>
+              <div class="metric-chart" id="aqi-chart-mini"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- System Alerts -->
+      <div class="card alerts-card">
+        <div class="card-header">
+          <h3><span class="card-icon yellow">⚠️</span> System Alerts</h3>
+        </div>
+        <div class="alerts-list" id="alerts-list">
+          <div class="alert-item yellow">High TDS detected in Zone B <span class="alert-time">2 mins ago</span></div>
+          <div class="alert-item blue">Waste collection completed for Route 1 <span class="alert-time">15 mins ago</span></div>
+          <div class="alert-item yellow-light">Air quality moderate - MQ-135 <span class="alert-time">23 mins ago</span></div>
+          <div class="alert-item green-light">GPS lock acquired <span class="alert-time">1 hour ago</span></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Live Control Section -->
+    <section id="live">
+      <div class="live-control-layout">
+        <!-- Left Panel: Controls -->
+        <div class="control-panel">
+          <div class="card">
+            <h3>Autonomous Mode</h3>
+            <div class="autonomous-control">
+              <div class="autonomous-info">
+                <div class="autonomous-label">AI-driven navigation</div>
+                <div class="autonomous-status active">Active</div>
+              </div>
+              <label class="toggle-switch">
+                <input type="checkbox" id="autonomous-toggle" checked>
+                <span class="toggle-slider"></span>
+              </label>
+            </div>
+          </div>
+
+          <div class="card">
+            <h3>Directional Controls</h3>
+            <div class="dpad-controls">
+              <button class="dpad-btn" data-cmd="forward">↑</button>
+              <div class="dpad-row">
+                <button class="dpad-btn" data-cmd="left">←</button>
+                <button class="dpad-btn center" data-cmd="stop">○</button>
+                <button class="dpad-btn" data-cmd="right">→</button>
+              </div>
+              <button class="dpad-btn" data-cmd="backward">↓</button>
+            </div>
+          </div>
+
+          <div class="card">
+            <h3>Motor Speed</h3>
+            <div class="speed-control">
+              <div class="speed-label">Speed</div>
+              <div class="speed-value" id="speed-value">50%</div>
+              <input type="range" id="speed-slider" min="0" max="100" value="50" class="speed-slider">
+              <div class="speed-labels">
+                <span>0%</span>
+                <span>50%</span>
+                <span>100%</span>
+              </div>
+              <button class="btn-speed-action">↓</button>
+            </div>
+          </div>
+
+          <div class="card">
+            <h3>🎛️ Dual Conveyor Belt Control</h3>
+            <div class="conveyor-status-header">
+              <span id="conveyor-connection-status" class="status-badge disconnected">Disconnected</span>
+              <button class="btn-connect" id="connect-conveyor-btn">Connect to ESP8266</button>
+            </div>
+            
+            <div class="conveyor-controls">
+              <!-- Motor 1 Controls -->
+              <div class="motor-group">
+                <h4>Motor 1 (Wet Waste)</h4>
+                <div class="motor-buttons">
+                  <button class="btn-motor forward" data-cmd="1F">⬆ Forward</button>
+                  <button class="btn-motor stop" data-cmd="1S">⏹ Stop</button>
+                  <button class="btn-motor backward" data-cmd="1B">⬇ Backward</button>
+                </div>
+              </div>
+              
+              <!-- Motor 2 Controls -->
+              <div class="motor-group">
+                <h4>Motor 2 (Dry Waste)</h4>
+                <div class="motor-buttons">
+                  <button class="btn-motor forward" data-cmd="2F">⬆ Forward</button>
+                  <button class="btn-motor stop" data-cmd="2S">⏹ Stop</button>
+                  <button class="btn-motor backward" data-cmd="2B">⬇ Backward</button>
+                </div>
+              </div>
+              
+              <!-- Both Motors Controls -->
+              <div class="motor-group">
+                <h4>Both Motors</h4>
+                <div class="motor-buttons">
+                  <button class="btn-motor forward" data-cmd="AF">⬆⬆ All Forward</button>
+                  <button class="btn-motor stop" data-cmd="AS">⏹⏹ All Stop</button>
+                </div>
+              </div>
+            </div>
+            
+            <div class="conveyor-info">
+              <small>ESP8266 IP: <span id="esp-ip">192.168.4.1</span></small>
+              <small>Last Command: <span id="last-cmd">None</span></small>
+            </div>
+          </div>
+
+          <div class="card">
+            <h3>Quick Actions</h3>
+            <div class="quick-actions">
+              <button class="btn-quick purple">🏠 Return To Home</button>
+              <button class="btn-quick green">▶️ Start Waste Collection</button>
+              <button class="btn-quick white">⚙️ Open Segregation Flap</button>
+              <button class="btn-quick white" id="start-backend-btn">🖥️ Start Backend</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Right Panel: Monitoring -->
+        <div class="monitoring-panel">
+          <div class="card">
+            <div class="card-header">
+              <h3><span class="card-icon purple">📍</span> Live GPS Tracking</h3>
+              <div class="gps-status">
+                <span class="status-dot green"></span> GPS Active
+              </div>
+            </div>
+            <div class="gps-map" id="gps-map"></div>
+            <div class="gps-tooltip" id="gps-tooltip">
+              <div>Lat: <span id="tooltip-lat">28.6129°</span> N</div>
+              <div>Lon: <span id="tooltip-lon">77.2295°</span> E</div>
+              <div>Heading: <span id="tooltip-heading">045°</span> NE</div>
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="card-header">
+              <h3><span class="card-icon">📷</span> Live Camera Feed</h3>
+              <div class="camera-actions">
+                <button class="btn-camera" id="camera-start-btn">Start</button>
+                <button class="btn-camera secondary" id="camera-stop-btn">Stop</button>
+                <div class="camera-status camera-status-text">Camera Off</div>
+              </div>
+            </div>
+            <div class="live-camera-view">
+              <div class="live-badge">LIVE</div>
+              <video id="live-video" data-camera-video autoplay playsinline muted></video>
+              <div class="live-camera-placeholder">Camera is off. Click Start to begin.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Analytics Section -->
+    <section id="analytics">
+      <div class="page-header">
+        <div>
+          <h1>Analytics</h1>
+          <p class="page-subtitle">Data insights and trends</p>
+        </div>
+        <div class="header-actions">
+          <button class="btn-filter">📅 Last 7 Days</button>
+          <button class="btn-export">📥 Export Data</button>
+        </div>
+      </div>
+
+      <!-- KPI Cards -->
+      <div class="kpi-grid">
+        <div class="kpi-card">
+          <div class="kpi-label">Total Waste Collected</div>
+          <div class="kpi-value" id="kpi-waste">85.6 Kg</div>
+          <div class="kpi-trend green">
+            <span>↑</span> +12.5% vs last week
+          </div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-label">Avg TDS Level</div>
+          <div class="kpi-value" id="kpi-tds">342 ppm</div>
+          <div class="kpi-trend red">
+            <span>↑</span> +8.3% vs last week
+          </div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-label">Avg Temperature</div>
+          <div class="kpi-value" id="kpi-temp">28.2 °C</div>
+          <div class="kpi-trend green">
+            <span>↓</span> -1.2% vs last week
+          </div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-label">Avg Air Quality</div>
+          <div class="kpi-value" id="kpi-aqi">158 PPM</div>
+          <div class="kpi-trend orange">
+            <span>↑</span> +3.1% vs last week
+          </div>
+        </div>
+      </div>
+
+      <!-- Charts -->
+      <div class="analytics-charts">
+        <div class="card chart-card">
+          <h3>Daily Waste Collection</h3>
+          <canvas id="wasteChart"></canvas>
+        </div>
+      </div>
+
+      <div class="trend-charts">
+        <div class="card chart-card">
+          <h3>TDS Level Trend</h3>
+          <canvas id="tdsTrend"></canvas>
+        </div>
+        <div class="card chart-card">
+          <h3>Water Temperature Trend</h3>
+          <canvas id="tempTrend"></canvas>
+        </div>
+        <div class="card chart-card">
+          <h3>Air Quality Variation (MQ-135)</h3>
+          <canvas id="aqiTrend"></canvas>
+        </div>
+      </div>
+
+      <!-- Correlation Analysis -->
+      <div class="card chart-card">
+        <h3>Correlation Analysis</h3>
+        <p class="chart-subtitle">High TDS levels correlate with increased waste collection in specific zones</p>
+        <canvas id="correlationChart"></canvas>
+        <div class="correlation-insights">
+          <div class="insight-card blue">
+            <div class="insight-title">Peak Collection Time</div>
+            <div class="insight-value">2:00 PM - 4:00 PM</div>
+            <div class="insight-desc">Highest waste accumulation detected during afternoon hours</div>
+          </div>
+          <div class="insight-card green">
+            <div class="insight-title">Most Efficient Route</div>
+            <div class="insight-value">Route B</div>
+            <div class="insight-desc">23% more waste collected with 15% less energy consumption</div>
+          </div>
+          <div class="insight-card purple">
+            <div class="insight-title">Pollution Hotspot</div>
+            <div class="insight-value">Zone E</div>
+            <div class="insight-desc">Consistently high TDS (450 ppm) and air quality issues</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Predictions Section -->
+    <section id="predictions">
+      <div class="page-header">
+        <div>
+          <h1>Predictions</h1>
+        </div>
+      </div>
+
+      <!-- Overall Risk Level -->
+      <div class="card">
+        <h3>Overall Risk Level</h3>
+        <p class="card-subtitle">Based on predicted TDS, temperature, and air quality trends</p>
+        <div class="risk-slider-container">
+          <div class="risk-gradient">
+            <div class="risk-marker" id="risk-marker" style="left: 70%;"></div>
+          </div>
+          <div class="risk-labels">
+            <span>Low Risk</span>
+            <span>Moderate Risk</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- 7-Day Forecast -->
+      <div class="card">
+        <h3><span class="card-icon">📈</span> 7-Day Waste Generation Forecast</h3>
+        <canvas id="forecastChart"></canvas>
+      </div>
+
+      <!-- High Waste Zones -->
+      <div class="predictions-layout">
+        <div class="card">
+          <h3><span class="card-icon red">📍</span> High Waste Zones Prediction</h3>
+          <div class="zones-map" id="zones-map"></div>
+          <div class="risk-legend">
+            <div class="legend-item">
+              <span class="legend-dot red"></span> High
+            </div>
+            <div class="legend-item">
+              <span class="legend-dot yellow"></span> Medium
+            </div>
+            <div class="legend-item">
+              <span class="legend-dot green"></span> Low
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <h3>Predicted High-Waste Zones</h3>
+          <div class="zones-list" id="zones-list">
+            <div class="zone-card high">
+              <div class="zone-header">
+                <div class="zone-name">Zone E</div>
+                <div class="zone-risk">HIGH</div>
+              </div>
+              <div class="zone-coords">28.618° N, 77.235° E</div>
+              <div class="zone-waste">Predicted Waste: 28.7 Kg</div>
+            </div>
+            <div class="zone-card high">
+              <div class="zone-header">
+                <div class="zone-name">Zone B</div>
+                <div class="zone-risk">HIGH</div>
+              </div>
+              <div class="zone-coords">28.615° N, 77.231° E</div>
+              <div class="zone-waste">Predicted Waste: 25.3 Kg</div>
+            </div>
+            <div class="zone-card high">
+              <div class="zone-header">
+                <div class="zone-name">Zone D</div>
+                <div class="zone-risk">HIGH</div>
+              </div>
+              <div class="zone-coords">28.62° N, 77.24° E</div>
+              <div class="zone-waste">Predicted Waste: 21.5 Kg</div>
+            </div>
+            <div class="zone-card medium">
+              <div class="zone-header">
+                <div class="zone-name">Zone A</div>
+                <div class="zone-risk">MEDIUM</div>
+              </div>
+              <div class="zone-coords">28.61° N, 77.228° E</div>
+              <div class="zone-waste">Predicted Waste: 18.2 Kg</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- AI Recommendations -->
+      <div class="card recommendations-card">
+        <div class="card-header">
+          <h3><span class="card-icon purple">🧠</span> AI Recommendations</h3>
+          <span class="help-icon">?</span>
+        </div>
+        <div class="recommendations-grid">
+          <div class="recommendation-card">
+            <div class="rec-title">Route Optimization</div>
+            <div class="rec-desc">Prioritize Zone E and Zone B for early morning collections. Expected to save 23% energy.</div>
+          </div>
+          <div class="recommendation-card">
+            <div class="rec-title">Resource Allocation</div>
+            <div class="rec-desc">Deploy additional collection units to Zone B during peak hours (2-4 PM) this weekend.</div>
+          </div>
+          <div class="recommendation-card">
+            <div class="rec-title">Maintenance Alert</div>
+            <div class="rec-desc">TDS sensor calibration recommended within 48 hours to maintain prediction accuracy.</div>
+          </div>
+          <div class="recommendation-card">
+            <div class="rec-title">Environmental Action</div>
+            <div class="rec-desc">Alert local authorities about Zone E pollution levels. Immediate intervention recommended.</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Pollution Trend Forecast -->
+      <div class="card">
+        <h3><span class="card-icon purple">🧠</span> Pollution Trend Forecast</h3>
+        <canvas id="pollutionForecast"></canvas>
+        <div class="forecast-warning">
+          <span class="warning-icon">⚠️</span>
+          Warning: TDS levels predicted to exceed safe threshold (400 ppm) by Saturday. Air quality may deteriorate to "Poor" category by Sunday.
+        </div>
+      </div>
+    </section>
+
+    <!-- Reports Section -->
+    <section id="reports">
+      <div class="page-header">
+        <div>
+          <h1>Reports</h1>
+          <p class="page-subtitle">Generate and export data reports</p>
+        </div>
+      </div>
+
+      <!-- Report Options -->
+      <div class="reports-grid">
+        <div class="card">
+          <h3><span class="card-icon">📅</span> Report Period</h3>
+          <div class="period-options">
+            <div class="period-option">Daily Report <span class="period-desc">(Last 24 hours)</span></div>
+            <div class="period-option active">Weekly Report <span class="period-desc">(Last 7 days)</span></div>
+            <div class="period-option">Monthly Report <span class="period-desc">(Last 30 days)</span></div>
+          </div>
+        </div>
+
+        <div class="card">
+          <h3><span class="card-icon">📄</span> CSV Export</h3>
+          <p class="card-desc">Export data in CSV format for analysis in Excel or other tools.</p>
+          <button class="btn-export-csv">📥 Generate CSV Report</button>
+        </div>
+
+        <div class="card">
+          <h3><span class="card-icon">📄</span> PDF Export</h3>
+          <p class="card-desc">Generate comprehensive visualizations.</p>
+          <button class="btn-export-pdf">📥 Generate PDF Report</button>
+        </div>
+      </div>
+
+      <!-- Summary Metrics -->
+      <div class="summary-metrics">
+        <div class="summary-card">
+          <div class="summary-label">Total Records</div>
+          <div class="summary-value">7</div>
+        </div>
+        <div class="summary-card">
+          <div class="summary-label">Total Waste Collected</div>
+          <div class="summary-value">131.3 Kg</div>
+        </div>
+        <div class="summary-card">
+          <div class="summary-label">Avg TDS Level</div>
+          <div class="summary-value">336 ppm</div>
+        </div>
+        <div class="summary-card">
+          <div class="summary-label">Avg Air Quality</div>
+          <div class="summary-value">159 PPM</div>
+        </div>
+      </div>
+
+      <!-- Collection Records Table -->
+      <div class="card">
+        <div class="card-header">
+          <h3><span class="card-icon">📋</span> Collection Records</h3>
+          <button class="btn-export-table">📥 Export Table</button>
+        </div>
+        <table class="records-table" id="records-table">
+          <thead>
+            <tr>
+              <th>Date</th>
+              <th>Dry Waste (Kg)</th>
+              <th>Wet Waste (Kg)</th>
+              <th>TDS (ppm)</th>
+              <th>Temp (°C)</th>
+              <th>Air Quality (PPM)</th>
+              <th>GPS Location</th>
+              <th>Status</th>
+            </tr>
+          </thead>
+          <tbody id="records-tbody">
+            <!-- Populated by JS -->
+          </tbody>
+        </table>
+        <div class="table-pagination">
+          <span>Showing 7 records</span>
+          <div class="pagination-controls">
+            <button class="btn-pagination">Previous</button>
+            <button class="btn-pagination">Next</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Report Templates -->
+      <div class="card">
+        <h3>Available Report Templates</h3>
+        <div class="templates-grid">
+          <div class="template-card blue">
+            <div class="template-icon">📄</div>
+            <div class="template-title">Environmental Impact Report</div>
+            <div class="template-desc">Comprehensive analysis of TDS, temperature, and air quality trends</div>
+          </div>
+          <div class="template-card green">
+            <div class="template-icon">📄</div>
+            <div class="template-title">Waste Collection Summary</div>
+            <div class="template-desc">Detailed breakdown of dry and wet waste collection by zone</div>
+          </div>
+          <div class="template-card purple">
+            <div class="template-icon">📄</div>
+            <div class="template-title">Performance Analytics</div>
+            <div class="template-desc">System efficiency, battery usage, and operational metrics</div>
+          </div>
+          <div class="template-card orange">
+            <div class="template-icon">📄</div>
+            <div class="template-title">Executive Summary</div>
+            <div class="template-desc">High-level overview for stakeholders and decision makers</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Heatmap Section -->
+    <section id="heatmap">
+      <div class="page-header">
+        <div>
+          <h1>Heatmap Analysis</h1>
+          <p class="page-subtitle">Spatial distribution of waste and pollution</p>
+        </div>
+        <button class="btn-export">📥 Export Heatmap</button>
+      </div>
+
+      <!-- Layer Selection -->
+      <div class="card">
+        <h3><span class="card-icon">📊</span> Select Heatmap Layer</h3>
+        <div class="layer-buttons">
+          <button class="layer-btn" data-layer="dry">
+            <span class="layer-dot blue"></span> Dry Waste Density
+          </button>
+          <button class="layer-btn" data-layer="wet">
+            <span class="layer-dot green"></span> Wet Waste Density
+          </button>
+          <button class="layer-btn active" data-layer="pollution">
+            <span class="layer-dot red"></span> Pollution Heatmap (TDS + AQI)
+          </button>
+        </div>
+      </div>
+
+      <!-- Pollution Map -->
+      <div class="card">
+        <div class="card-header">
+          <h3><span class="card-icon purple">🗺️</span> Pollution Concentration Map</h3>
+          <div class="map-date">Sun - Live Data</div>
+        </div>
+        <div class="pollution-map" id="pollution-map"></div>
+        <div class="map-zones">
+          <div class="map-zone-tag">Zone A High Pollution</div>
+          <div class="map-zone-tag">Zone B High Pollution</div>
+        </div>
+      </div>
+
+      <!-- Time Series Analysis -->
+      <div class="card">
+        <h3><span class="card-icon">📅</span> Time-Series Analysis</h3>
+        <div class="day-selector">
+          <div class="day-label">Select Day</div>
+          <input type="range" id="day-slider" min="0" max="6" value="6" class="day-slider">
+          <div class="day-labels">
+            <span>Mon</span>
+            <span>Tue</span>
+            <span>Wed</span>
+            <span>Thu</span>
+            <span>Fri</span>
+            <span>Sat</span>
+            <span class="active">Sun</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- About Section -->
+    <section id="about">
+      <div class="page-header">
+        <div>
+          <h1>About Us</h1>
+        </div>
+      </div>
+      <div class="card">
+        <h3>PAVITRAX Smart Waste Segregation Boat</h3>
+        <p>An autonomous, AI-powered waste segregation system designed for Urban Local Bodies (ULBs) to efficiently collect and segregate floating waste from water bodies.</p>
+        <h4>Mission</h4>
+        <p>To deliver a resilient, low-cost autonomous waste-segregation platform that helps ULBs maintain cleaner water bodies through real-time monitoring, AI-based classification, and automated collection.</p>
+        <h4>Key Features</h4>
+        <ul>
+          <li>Real-time IoT monitoring with ESP8266 and ESP32-CAM</li>
+          <li>AI-powered waste classification using YOLOv8n</li>
+          <li>Dual-bin moisture-aware segregation system</li>
+          <li>Environmental monitoring (TDS, temperature, air quality)</li>
+          <li>Autonomous navigation with GPS and compass</li>
+          <li>Comprehensive analytics and reporting</li>
+        </ul>
+        <h4>Hardware</h4>
+        <p>ESP32-CAM (image processing), ESP8266 (sensors & motor control), NEO-6M GPS, HMC5883L Compass, MQ135/MQ2 gas sensors, DS18B20 temperature, TDS sensor, HX711 load cell, L298N motor drivers.</p>
+        <h4>Future Scope</h4>
+        <p>Fleet orchestration, predictive routing, SLA dashboards, auto-reports to pollution boards, integration with city open-data portals.</p>
+      </div>
+    </section>
+  </main>
+
+  <!-- Help Icon -->
+  <div class="help-icon-fixed">?</div>
+
+  <script src="./app.js"></script>
+</body>
+</html>
