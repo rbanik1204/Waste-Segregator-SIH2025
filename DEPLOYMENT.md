@@ -15,6 +15,9 @@ The repository includes:
 
 ## Enabling GitHub Pages
 
+**📖 For detailed step-by-step instructions, see [GITHUB_PAGES_SETUP.md](GITHUB_PAGES_SETUP.md)**
+
+Quick steps:
 1. Go to your repository on GitHub
 2. Click **Settings** → **Pages**
 3. Under **Source**, select **GitHub Actions**
