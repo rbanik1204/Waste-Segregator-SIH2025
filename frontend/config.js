@@ -8,15 +8,21 @@ const CONFIG = {
   // Backend API Configuration
   // When running locally on port 3000, API runs on port 4000
   // When on GitHub Pages, you'll need to deploy backend separately and update this URL
-  API_BASE: location.origin.includes('3000')
-    ? location.origin.replace('3000', '4000')
-    : location.origin,
+  API_BASE: (() => {
+    const origin = location.origin;
+    // Handle local development on port 3000
+    if (origin.endsWith(':3000')) {
+      return origin.replace(':3000', ':4000');
+    }
+    return origin;
+  })(),
 
   // YOLO Stream Configuration
   // For local development, this points to local YOLO stream server
   // For GitHub Pages deployment, update this to your deployed YOLO stream URL
+  // Example: 'https://api.yourdomain.com/yolo/stream' or 'https://your-backend.herokuapp.com/stream'
   YOLO_STREAM_URL: isGitHubPages 
-    ? 'https://your-yolo-server.example.com/stream' 
+    ? 'https://api.yourdomain.com/yolo/stream' 
     : 'http://127.0.0.1:8090/stream',
 
   // ESP8266/Hardware Configuration

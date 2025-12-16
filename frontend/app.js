@@ -1,9 +1,14 @@
 // PAVITRAX Frontend JavaScript
 // Use configuration from config.js if available, otherwise fallback to default
 const CONFIG = window.APP_CONFIG || {};
-const API_BASE = CONFIG.API_BASE || (location.origin.includes('3000')
-  ? location.origin.replace('3000', '4000')
-  : location.origin);
+const API_BASE = CONFIG.API_BASE || (() => {
+  const origin = location.origin;
+  // Handle local development on port 3000
+  if (origin.endsWith(':3000')) {
+    return origin.replace(':3000', ':4000');
+  }
+  return origin;
+})();
 
 let map, locationMap, gpsMap, zonesMap, pollutionMap;
 let marker, locationMarker, gpsMarker;
