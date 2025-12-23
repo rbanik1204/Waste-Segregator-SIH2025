@@ -88,6 +88,12 @@ An IoT-enabled smart waste segregation system that combines:
 
 ---
 
+## 🌐 Live Demo
+
+**Deploy to GitHub Pages!** This project is configured for easy deployment to GitHub Pages. See **[DEPLOYMENT.md](DEPLOYMENT.md)** for instructions.
+
+---
+
 ## 📋 Prerequisites
 
 ### System Requirements
@@ -226,6 +232,8 @@ Open `frontend/index.html` in a web browser or use:
 python -m http.server 8080
 # Then navigate to: http://localhost:8080
 ```
+
+**Or deploy to GitHub Pages for public access** - See [DEPLOYMENT.md](DEPLOYMENT.md) for GitHub Pages setup.
 
 #### 6. Flash ESP8266/ESP32 (Optional - for hardware integration)
 Upload firmware from `backend/ESP8266/esp8266_telemetry/` or `backend/ESP32/esp32cam_telemetry.ino`

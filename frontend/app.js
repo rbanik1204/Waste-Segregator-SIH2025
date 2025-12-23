@@ -1,7 +1,14 @@
 // PAVITRAX Frontend JavaScript
-const API_BASE = location.origin.includes('3000')
-  ? location.origin.replace('3000', '4000')
-  : location.origin;
+// Use configuration from config.js if available, otherwise fallback to default
+const CONFIG = window.APP_CONFIG || {};
+const API_BASE = CONFIG.API_BASE || (() => {
+  const origin = location.origin;
+  // Handle local development on port 3000
+  if (origin.endsWith(':3000')) {
+    return origin.replace(':3000', ':4000');
+  }
+  return origin;
+})();
 
 let map, locationMap, gpsMap, zonesMap, pollutionMap;
 let marker, locationMarker, gpsMarker;
@@ -11,7 +18,7 @@ let charts = {};
 let cameraStream;
 let cameraDevices = [];
 let cameraDeviceId = null;
-const YOLO_STREAM_URL = 'http://127.0.0.1:8090/stream';
+const YOLO_STREAM_URL = CONFIG.YOLO_STREAM_URL || 'http://127.0.0.1:8090/stream';
 
 // Navigation
 function initNavigation() {
@@ -1098,8 +1105,8 @@ function updateGasSensorDisplay(data) {
 }
 
 // ===== CONVEYOR BELT CONTROLS =====
-const ESP8266_IP = '192.168.4.1';
-const ESP8266_PORT = '80';
+const ESP8266_IP = CONFIG.ESP8266_IP || '192.168.4.1';
+const ESP8266_PORT = CONFIG.ESP8266_PORT || '80';
 let conveyorConnected = false;
 
 function initConveyorControls() {
